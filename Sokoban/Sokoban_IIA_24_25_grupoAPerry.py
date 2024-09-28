@@ -22,68 +22,43 @@ standard_world = line1 + line2 + line3 + line4 + line5 + line6 + line7 + line8 +
 
 class SokobanState:
 
-    def locateSokoban(self, Grid):
-        for r in range(len(Grid)):
-            for c in range(len(Grid[r])):
-                if Grid[r][c] == "@" or Grid[r][c] == "+":
-                    return (r,c)
-
     def __init__(self, world):
-        self.world = world
-        self.worldGrid = self.world.split("\n")
-        self.sokobanPosition = self.locateSokoban(self.worldGrid)
-        self.r, self.c = self.sokobanPosition[0], self.sokobanPosition[1]
+        self.world_str = world
+        self.world_grid = self.world_str.split("\n")
+        self.r, self.c = self.get_sokoban_pos()
 
-    def canMoveTo(self, direction):
-        result = True
+    def get_sokoban_pos(self):
+        for row in range(len(self.world_grid)):
+            for col in range(len(self.world_grid[row])):
+                if self.world_grid[row][col] in "@+":
+                    return row, col
+
+    def is_empty(self, row, col):
+        return self.world_grid[row][col] in ".o"
+
+    def is_box(self, row, col):
+        return self.world_grid[row][col] in "*$"
+
+    def can_move(self, direction):
         r, c = self.r, self.c
 
-        #Falta a condiCAo dos cantos
-        
-        if direction == "N":
-            if self.worldGrid[r-1][c] == "#" or \
-                (self.worldGrid[r-1][c] == "$" and self.worldGrid[r-2][c] not in ".o"):
-                result = False
-        if direction == "W":
-            if self.worldGrid[r][c-1] == "#" or \
-                (self.worldGrid[r][c-1] == "$" and self.worldGrid[r][c-2] not in ".o"):
-                result = False
-        if direction == "E":
-            if self.worldGrid[r][c+1] == "#" or \
-                (self.worldGrid[r][c+1] == "$" and self.worldGrid[r][c+2] not in ".o"):
-                result = False
-        if direction == "S":
-            if self.worldGrid[r+1][c] == "#" or \
-                (self.worldGrid[r+1][c] == "$" and self.worldGrid[r+2][c] not in ".o"):
-                result = False
+        if direction == "N":   r_target, c_target, r_next, c_next = r-1, c, r-2, c
+        elif direction == "W": r_target, c_target, r_next, c_next = r, c-1, r, c-2
+        elif direction == "E": r_target, c_target, r_next, c_next = r, c+1, r, c+2
+        else:                  r_target, c_target, r_next, c_next = r+1, c, r+2, c
 
-        return result
+        return self.is_empty(r_target, c_target) or self.is_box(r_target, c_target) and self.is_empty(r_next, c_next)
 
-    def getActions(self):
-        actions = []
-
-        #Caso esteja uma parede ("#")
-        if self.canMoveTo("N"):
-            actions.append("N")
-
-        if self.canMoveTo("W"):
-            actions.append("W")
-
-        if self.canMoveTo("E"):
-            actions.append("E")
-
-        if self.canMoveTo("S"):
-            actions.append("S")
-
-        return actions
+    def get_valid_actions(self):
+        return [direction for direction in "NWES" if self.can_move(direction)]
     
-    def getResult(self, action):
+    def get_result(self, action):
         pass
 
     def completed(self):
         has_completed = True
 
-        for elem in self.world:
+        for elem in self.world_str:
             if elem == '$':
                 has_completed = False
                 break
@@ -91,7 +66,7 @@ class SokobanState:
         return has_completed
 
     def __eq__(self, other):
-        return self.world == other.world
+        return self.world_str == other.world
 
 ############################ SokobanProblem ###############################
 
@@ -101,10 +76,10 @@ class Sokoban(Problem):
         super().__init__(self.initial)
 
     def actions(self, state):
-        return state.getActions()
+        return state.get_valid_actions()
 
     def result(self, state, action):
-        return state.getResult(action)
+        return state.get_result(action)
 
     # Partindo de state, executa a sequência (lista) de acções (em actions) e devolve o último estado
     def executa(self, state, actions):
@@ -123,5 +98,4 @@ class Sokoban(Problem):
 
 s = Sokoban()
 print(s.goal_test(SokobanState(standard_world)))
-
 print(s.actions(s.initial))
