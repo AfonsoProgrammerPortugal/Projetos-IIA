@@ -21,8 +21,64 @@ standard_world = line1 + line2 + line3 + line4 + line5 + line6 + line7 + line8 +
 ############################ SokobanState ###############################
 
 class SokobanState:
+
+    def locateSokoban(self, Grid):
+        for r in range(len(Grid)):
+            for c in range(len(Grid[r])):
+                if Grid[r][c] == "@" or Grid[r][c] == "+":
+                    return (r,c)
+
     def __init__(self, world):
         self.world = world
+        self.worldGrid = self.world.split("\n")
+        self.sokobanPosition = self.locateSokoban(self.worldGrid)
+        self.r, self.c = self.sokobanPosition[0], self.sokobanPosition[1]
+
+    def canMoveTo(self, direction):
+        result = True
+        r, c = self.r, self.c
+
+        #Falta a condiCAo dos cantos
+        
+        if direction == "N":
+            if self.worldGrid[r-1][c] == "#" or \
+                (self.worldGrid[r-1][c] == "$" and self.worldGrid[r-2][c] not in ".o"):
+                result = False
+        if direction == "W":
+            if self.worldGrid[r][c-1] == "#" or \
+                (self.worldGrid[r][c-1] == "$" and self.worldGrid[r][c-2] not in ".o"):
+                result = False
+        if direction == "E":
+            if self.worldGrid[r][c+1] == "#" or \
+                (self.worldGrid[r][c+1] == "$" and self.worldGrid[r][c+2] not in ".o"):
+                result = False
+        if direction == "S":
+            if self.worldGrid[r+1][c] == "#" or \
+                (self.worldGrid[r+1][c] == "$" and self.worldGrid[r+2][c] not in ".o"):
+                result = False
+
+        return result
+
+    def getActions(self):
+        actions = []
+
+        #Caso esteja uma parede ("#")
+        if self.canMoveTo("N"):
+            actions.append("N")
+
+        if self.canMoveTo("W"):
+            actions.append("W")
+
+        if self.canMoveTo("E"):
+            actions.append("E")
+
+        if self.canMoveTo("S"):
+            actions.append("S")
+
+        return actions
+    
+    def getResult(self, action):
+        pass
 
     def completed(self):
         has_completed = True
@@ -45,10 +101,10 @@ class Sokoban(Problem):
         super().__init__(self.initial)
 
     def actions(self, state):
-        pass
+        return state.getActions()
 
     def result(self, state, action):
-        pass
+        return state.getResult(action)
 
     # Partindo de state, executa a sequência (lista) de acções (em actions) e devolve o último estado
     def executa(self, state, actions):
@@ -67,3 +123,5 @@ class Sokoban(Problem):
 
 s = Sokoban()
 print(s.goal_test(SokobanState(standard_world)))
+
+print(s.actions(s.initial))
