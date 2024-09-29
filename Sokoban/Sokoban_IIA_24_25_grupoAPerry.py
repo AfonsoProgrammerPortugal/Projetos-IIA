@@ -38,6 +38,32 @@ class SokobanState:
 
     def is_box(self, row, col):
         return self.world_grid[row][col] in "*$"
+    
+    def is_invalid_corner(self, row, col, direction):
+        
+        if direction == "N": 
+            return self.world_grid[row-1][col] == "#" and \
+                   (self.world_grid[row][col+1] == "#" or \
+                    self.world_grid[row][col-1] == "#") and \
+                    self.world_grid[row][col] != "o"
+        
+        if direction == "W": 
+            return self.world_grid[row][col-1] == "#" and \
+                   (self.world_grid[row-1][col] == "#" or \
+                    self.world_grid[row+1][col] == "#") and \
+                    self.world_grid[row][col] != "o"
+        
+        if direction == "E": 
+            return self.world_grid[row][col+1] == "#" and \
+                   (self.world_grid[row-1][col] == "#" or \
+                    self.world_grid[row+1][col] == "#") and \
+                    self.world_grid[row][col] != "o"
+        
+        if direction == "S": 
+            return self.world_grid[row+1][col] == "#" and \
+                   (self.world_grid[row][col+1] == "#" or \
+                    self.world_grid[row][col-1] == "#") and \
+                    self.world_grid[row][col] != "o"
 
     def can_move(self, direction):
         r, c = self.r, self.c
@@ -47,13 +73,22 @@ class SokobanState:
         elif direction == "E": r_target, c_target, r_next, c_next = r, c+1, r, c+2
         else:                  r_target, c_target, r_next, c_next = r+1, c, r+2, c
 
-        return self.is_empty(r_target, c_target) or self.is_box(r_target, c_target) and self.is_empty(r_next, c_next)
+        return self.is_empty(r_target, c_target) or \
+               self.is_box(r_target, c_target) and self.is_empty(r_next, c_next) and not \
+               self.is_invalid_corner(r_next, c_next, direction)
 
     def get_valid_actions(self):
         return [direction for direction in "NWES" if self.can_move(direction)]
     
     def get_result(self, action):
-        pass
+        r, c = self.r, self.c
+
+        if action == "N":   r_target, c_target, r_next, c_next = r-1, c, r-2, c
+        elif action == "W": r_target, c_target, r_next, c_next = r, c-1, r, c-2
+        elif action == "E": r_target, c_target, r_next, c_next = r, c+1, r, c+2
+        else:               r_target, c_target, r_next, c_next = r+1, c, r+2, c
+
+        return 
 
     def completed(self):
         has_completed = True
