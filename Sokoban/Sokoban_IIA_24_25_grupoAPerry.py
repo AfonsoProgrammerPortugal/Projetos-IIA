@@ -20,6 +20,20 @@ standard_world = line1 + line2 + line3 + line4 + line5 + line6 + line7 + line8 +
 
 ############################ SokobanState ###############################
 
+def get_potential_walls_coords(row, col, direction):
+    r, c = row, col
+    if direction == "N":   return r-1, c, r, c+1, r, c-1
+    elif direction == "W": return r, c-1, r-1, c, r+1, c
+    elif direction == "E": return r, c+1, r-1, c, r+1, c
+    else:                  return r+1, c, r, c+1, r, c-1
+
+def get_target_and_next_coords(row, col, direction):
+    r, c = row, col
+    if direction == "N":   return r-1, c, r-2, c
+    elif direction == "W": return r, c-1, r, c-2
+    elif direction == "E": return r, c+1, r, c+2
+    else:                  return r+1, c, r+2, c
+
 class SokobanState:
 
     def __init__(self, world):
@@ -39,79 +53,65 @@ class SokobanState:
     def is_box(self, row, col):
         return self.world_grid[row][col] in "*$"
 
+    def is_objective(self, row, col):
+        return self.world_grid[row][col] == "o"
+
+    def front_is_wall(self, row, col):
+        return self.world_grid[row][col] == "#"
+
+    def at_least_one_side_is_wall(self, row_side1, col_side1, row_side2, col_side2):
+        return self.world_grid[row_side1][col_side1] == "#" or \
+               self.world_grid[row_side2][col_side2] == "#"
+
     def is_invalid_corner(self, row, col, direction):
+        r_front, c_front, r_side1, c_side1, r_side2, c_side2 = get_potential_walls_coords(row, col, direction)
 
-        if direction == "N":
-            return self.world_grid[row-1][col] == "#" and \
-                   (self.world_grid[row][col+1] == "#" or \
-                    self.world_grid[row][col-1] == "#") and \
-                    self.world_grid[row][col] != "o"
-
-        if direction == "W":
-            return self.world_grid[row][col-1] == "#" and \
-                   (self.world_grid[row-1][col] == "#" or \
-                    self.world_grid[row+1][col] == "#") and \
-                    self.world_grid[row][col] != "o"
-
-        if direction == "E":
-            return self.world_grid[row][col+1] == "#" and \
-                   (self.world_grid[row-1][col] == "#" or \
-                    self.world_grid[row+1][col] == "#") and \
-                    self.world_grid[row][col] != "o"
-
-        if direction == "S":
-            return self.world_grid[row+1][col] == "#" and \
-                   (self.world_grid[row][col+1] == "#" or \
-                    self.world_grid[row][col-1] == "#") and \
-                    self.world_grid[row][col] != "o"
+        return not self.is_objective(row, col) and \
+               self.front_is_wall(r_front, c_front) and \
+               self.at_least_one_side_is_wall(r_side1, c_side1, r_side2, c_side2)
 
     def can_move(self, direction):
         r, c = self.r, self.c
-
-        if direction == "N":   r_target, c_target, r_next, c_next = r-1, c, r-2, c
-        elif direction == "W": r_target, c_target, r_next, c_next = r, c-1, r, c-2
-        elif direction == "E": r_target, c_target, r_next, c_next = r, c+1, r, c+2
-        else:                  r_target, c_target, r_next, c_next = r+1, c, r+2, c
+        r_target, c_target, r_next, c_next = get_target_and_next_coords(r, c, direction)
 
         return self.is_empty(r_target, c_target) or \
-               self.is_box(r_target, c_target) and self.is_empty(r_next, c_next) and not \
-               self.is_invalid_corner(r_next, c_next, direction)
+              (self.is_box(r_target, c_target) and self.is_empty(r_next, c_next) and not
+               self.is_invalid_corner(r_next, c_next, direction))
 
     def get_valid_actions(self):
         return [direction for direction in "NWES" if self.can_move(direction)]
 
     def get_result(self, action):
         new = [list(row) for row in self.world_grid]
-
+        direction = action
         r, c = self.r, self.c
-
-        if action == "N":   r_target, c_target, r_next, c_next = r-1, c, r-2, c
-        elif action == "W": r_target, c_target, r_next, c_next = r, c-1, r, c-2
-        elif action == "E": r_target, c_target, r_next, c_next = r, c+1, r, c+2
-        else:               r_target, c_target, r_next, c_next = r+1, c, r+2, c
+        r_target, c_target, r_next, c_next = get_target_and_next_coords(r, c, direction)
+        sokoban_pos_char = self.world_grid[r][c]
+        target_pos_char = self.world_grid[r_target][c_target]
+        next_pos_char = self.world_grid[r_next][c_next]
 
         # posiCAo inicial do Sokoban
-        if self.world_grid[r][c] == "+":
+        if sokoban_pos_char == "+":
             new[r][c] = "o"
-        elif self.world_grid[r][c] == "@":
+        elif sokoban_pos_char == "@":
             new[r][c] = "."
 
         # posiCAo target vazio
-        if self.world_grid[r_target][c_target] in ".o":
-            if self.world_grid[r_target][c_target] == ".":
+        if target_pos_char in ".o":
+            if target_pos_char == ".":
                 new[r_target][c_target] = "@"
-            elif self.world_grid[r_target][c_target] == "o":
+            elif target_pos_char == "o":
                 new[r_target][c_target] = "+"
 
         # posiCAo target caixa
-        elif self.world_grid[r_target][c_target] in "$*":
-            if self.world_grid[r_next][c_next] == ".":
+        elif target_pos_char in "$*":
+            if next_pos_char == ".":
                 new[r_next][c_next] = "$"
-            elif self.world_grid[r_next][c_next] == "o":
+            elif next_pos_char == "o":
                 new[r_next][c_next] = "*"
-            if self.world_grid[r_target][c_target] in "$":
+            if target_pos_char in "$":
                 new[r_target][c_target] = "@"
-            elif self.world_grid[r_target][c_target] == "*":
+            elif target_pos_char == "*":
                 new[r_target][c_target] = "+"
 
         new = ["".join(row) for row in new]
@@ -120,14 +120,11 @@ class SokobanState:
         return SokobanState(new_world_str)
 
     def completed(self):
-        has_completed = True
-
         for elem in self.world_str:
             if elem == '$':
-                has_completed = False
-                break
+                return False
 
-        return has_completed
+        return True
 
     def __eq__(self, other):
         return self.world_str == other.world_str
