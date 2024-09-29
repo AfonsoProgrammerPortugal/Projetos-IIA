@@ -2,7 +2,7 @@ from searchPlus import *
 
 line1 = "  ##### \n"
 line2 = "###...# \n"
-line3 = "#o@$..# \n"
+line3 = "#.o$@.# \n"
 line4 = "###.$o# \n"
 line5 = "#o##..# \n"
 line6 = "#.#...##\n"
@@ -24,7 +24,7 @@ class SokobanState:
 
     def __init__(self, world):
         self.world_str = world
-        self.world_grid = self.world_str.split("\n")
+        self.world_grid = self.world_str.rstrip("\n").split("\n")
         self.r, self.c = self.get_sokoban_pos()
 
     def get_sokoban_pos(self):
@@ -38,28 +38,28 @@ class SokobanState:
 
     def is_box(self, row, col):
         return self.world_grid[row][col] in "*$"
-    
+
     def is_invalid_corner(self, row, col, direction):
-        
-        if direction == "N": 
+
+        if direction == "N":
             return self.world_grid[row-1][col] == "#" and \
                    (self.world_grid[row][col+1] == "#" or \
                     self.world_grid[row][col-1] == "#") and \
                     self.world_grid[row][col] != "o"
-        
-        if direction == "W": 
+
+        if direction == "W":
             return self.world_grid[row][col-1] == "#" and \
                    (self.world_grid[row-1][col] == "#" or \
                     self.world_grid[row+1][col] == "#") and \
                     self.world_grid[row][col] != "o"
-        
-        if direction == "E": 
+
+        if direction == "E":
             return self.world_grid[row][col+1] == "#" and \
                    (self.world_grid[row-1][col] == "#" or \
                     self.world_grid[row+1][col] == "#") and \
                     self.world_grid[row][col] != "o"
-        
-        if direction == "S": 
+
+        if direction == "S":
             return self.world_grid[row+1][col] == "#" and \
                    (self.world_grid[row][col+1] == "#" or \
                     self.world_grid[row][col-1] == "#") and \
@@ -79,8 +79,10 @@ class SokobanState:
 
     def get_valid_actions(self):
         return [direction for direction in "NWES" if self.can_move(direction)]
-    
+
     def get_result(self, action):
+        new = [list(row) for row in self.world_grid]
+
         r, c = self.r, self.c
 
         if action == "N":   r_target, c_target, r_next, c_next = r-1, c, r-2, c
@@ -88,7 +90,34 @@ class SokobanState:
         elif action == "E": r_target, c_target, r_next, c_next = r, c+1, r, c+2
         else:               r_target, c_target, r_next, c_next = r+1, c, r+2, c
 
-        return 
+        # posiCAo inicial do Sokoban
+        if self.world_grid[r][c] == "+":
+            new[r][c] = "o"
+        elif self.world_grid[r][c] == "@":
+            new[r][c] = "."
+
+        # posiCAo target vazio
+        if self.world_grid[r_target][c_target] in ".o":
+            if self.world_grid[r_target][c_target] == ".":
+                new[r_target][c_target] = "@"
+            elif self.world_grid[r_target][c_target] == "o":
+                new[r_target][c_target] = "+"
+
+        # posiCAo target caixa
+        elif self.world_grid[r_target][c_target] in "$*":
+            if self.world_grid[r_next][c_next] == ".":
+                new[r_next][c_next] = "$"
+            elif self.world_grid[r_next][c_next] == "o":
+                new[r_next][c_next] = "*"
+            if self.world_grid[r_target][c_target] in "$":
+                new[r_target][c_target] = "@"
+            elif self.world_grid[r_target][c_target] == "*":
+                new[r_target][c_target] = "+"
+
+        new = ["".join(row) for row in new]
+        new_world_str = "\n".join(new)
+
+        return SokobanState(new_world_str)
 
     def completed(self):
         has_completed = True
@@ -101,7 +130,7 @@ class SokobanState:
         return has_completed
 
     def __eq__(self, other):
-        return self.world_str == other.world
+        return self.world_str == other.world_str
 
 ############################ SokobanProblem ###############################
 
@@ -129,8 +158,10 @@ class Sokoban(Problem):
         return state.completed()
 
     def display(self, state):
-        pass
+        print(state.world_str)
 
 s = Sokoban()
-print(s.goal_test(SokobanState(standard_world)))
+#print(s.goal_test(SokobanState(standard_world)))
 print(s.actions(s.initial))
+s1 = s.result(s.initial, "W")
+s.display(s1)
