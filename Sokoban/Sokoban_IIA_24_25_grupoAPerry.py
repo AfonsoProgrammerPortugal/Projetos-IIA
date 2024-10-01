@@ -20,13 +20,6 @@ standard_world = line1 + line2 + line3 + line4 + line5 + line6 + line7 + line8 +
 
 ############################ SokobanState ###############################
 
-def get_potential_walls_coords(row, col, direction):
-    r, c = row, col
-    if direction == "N":   return r-1, c, r, c+1, r, c-1
-    elif direction == "W": return r, c-1, r-1, c, r+1, c
-    elif direction == "E": return r, c+1, r-1, c, r+1, c
-    else:                  return r+1, c, r, c+1, r, c-1
-
 def get_target_and_next_coords(row, col, direction):
     r, c = row, col
     if direction == "N":   return r-1, c, r-2, c
@@ -35,7 +28,6 @@ def get_target_and_next_coords(row, col, direction):
     else:                  return r+1, c, r+2, c
 
 class SokobanState:
-
     def __init__(self, world):
         self.world_str = world
         self.world_grid = self.world_str.rstrip("\n").split("\n")
@@ -43,7 +35,6 @@ class SokobanState:
 
     def get_sokoban_pos_and_invalid_corners(self):
         grid = self.world_grid
-
         sokoban_found = False
         sokoban_row, sokoban_col = 0, 0
         corners = []
