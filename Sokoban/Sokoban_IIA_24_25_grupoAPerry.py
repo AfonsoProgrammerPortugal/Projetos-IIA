@@ -39,13 +39,35 @@ class SokobanState:
     def __init__(self, world):
         self.world_str = world
         self.world_grid = self.world_str.rstrip("\n").split("\n")
-        self.r, self.c = self.get_sokoban_pos()
+        self.r, self.c, self.invalid_corners = self.get_sokoban_pos_and_invalid_corners()
 
-    def get_sokoban_pos(self):
-        for row in range(len(self.world_grid)):
-            for col in range(len(self.world_grid[row])):
-                if self.world_grid[row][col] in "@+":
-                    return row, col
+    def get_sokoban_pos_and_invalid_corners(self):
+        grid = self.world_grid
+
+        sokoban_found = False
+        sokoban_row, sokoban_col = 0, 0
+        corners = []
+
+        for row in range(len(grid)):
+            for col in range(len(grid[row])):
+                if not sokoban_found and grid[row][col] in "@+":
+                    sokoban_found = True
+                    sokoban_row, sokoban_col = row, col
+                elif grid[row][col] == "." and self.is_invalid_corner(row, col):
+                    corners.append((row, col))
+
+        return sokoban_row, sokoban_col, corners
+
+    def is_invalid_corner(self, row, col):
+        grid = self.world_grid
+        counter = 0
+
+        if grid[row - 1][col] == "#" and grid[row][col + 1] == "#": counter += 1
+        if grid[row][col + 1] == "#" and grid[row + 1][col] == "#": counter += 1
+        if grid[row + 1][col] == "#" and grid[row][col - 1] == "#": counter += 1
+        if grid[row][col - 1] == "#" and grid[row - 1][col] == "#": counter += 1
+
+        return counter >= 2
 
     def is_empty(self, row, col):
         return self.world_grid[row][col] in ".o"
@@ -53,30 +75,13 @@ class SokobanState:
     def is_box(self, row, col):
         return self.world_grid[row][col] in "*$"
 
-    def is_objective(self, row, col):
-        return self.world_grid[row][col] == "o"
-
-    def front_is_wall(self, row, col):
-        return self.world_grid[row][col] == "#"
-
-    def at_least_one_side_is_wall(self, row_side1, col_side1, row_side2, col_side2):
-        return self.world_grid[row_side1][col_side1] == "#" or \
-               self.world_grid[row_side2][col_side2] == "#"
-
-    def is_invalid_corner(self, row, col, direction):
-        r_front, c_front, r_side1, c_side1, r_side2, c_side2 = get_potential_walls_coords(row, col, direction)
-
-        return not self.is_objective(row, col) and \
-               self.front_is_wall(r_front, c_front) and \
-               self.at_least_one_side_is_wall(r_side1, c_side1, r_side2, c_side2)
-
     def can_move(self, direction):
         r, c = self.r, self.c
         r_target, c_target, r_next, c_next = get_target_and_next_coords(r, c, direction)
 
         return self.is_empty(r_target, c_target) or \
-              (self.is_box(r_target, c_target) and self.is_empty(r_next, c_next) and not
-               self.is_invalid_corner(r_next, c_next, direction))
+              (self.is_box(r_target, c_target) and self.is_empty(r_next, c_next) and
+              (r_next, c_next) not in self.invalid_corners)
 
     def get_valid_actions(self):
         return [direction for direction in "NWES" if self.can_move(direction)]
