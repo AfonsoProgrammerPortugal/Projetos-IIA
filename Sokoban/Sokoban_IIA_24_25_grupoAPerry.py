@@ -30,7 +30,7 @@ def get_target_and_next_coords(row, col, direction):
 class SokobanState:
     def __init__(self, world):
         self.world_str = world
-        self.world_grid = self.world_str.rstrip("\n").split("\n")
+        self.world_grid = self.world_str.split("\n")
         self.r, self.c, self.invalid_corners = self.get_sokoban_pos_and_invalid_corners()
 
     def get_sokoban_pos_and_invalid_corners(self):
@@ -58,7 +58,7 @@ class SokobanState:
         if grid[row + 1][col] == "#" and grid[row][col - 1] == "#": counter += 1
         if grid[row][col - 1] == "#" and grid[row - 1][col] == "#": counter += 1
 
-        return counter >= 2
+        return counter > 0
 
     def is_empty(self, row, col):
         return self.world_grid[row][col] in ".o"
@@ -152,9 +152,3 @@ class Sokoban(Problem):
 
     def display(self, state):
         return state.world_str
-
-# s = Sokoban()
-# print(s.goal_test(SokobanState(standard_world)))
-# print(s.actions(s.initial))
-# s1 = s.result(s.initial, "W")
-# s.display(s1)
