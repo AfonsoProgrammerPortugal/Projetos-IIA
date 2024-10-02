@@ -2,7 +2,7 @@ from searchPlus import *
 
 line1 = "  ##### \n"
 line2 = "###...# \n"
-line3 = "#.o$@.# \n"
+line3 = "#o@$..# \n"
 line4 = "###.$o# \n"
 line5 = "#o##..# \n"
 line6 = "#.#...##\n"
@@ -128,8 +128,8 @@ class SokobanState:
 ############################ SokobanProblem ###############################
 
 class Sokoban(Problem):
-    def __init__(self, initial_world = standard_world):
-        self.initial = SokobanState(initial_world)
+    def __init__(self, situacaoInicial = standard_world):
+        self.initial = SokobanState(situacaoInicial)
         super().__init__(self.initial)
 
     def actions(self, state):
@@ -151,10 +151,10 @@ class Sokoban(Problem):
         return state.completed()
 
     def display(self, state):
-        print(state.world_str)
+        return state.world_str
 
-s = Sokoban()
-#print(s.goal_test(SokobanState(standard_world)))
-print(s.actions(s.initial))
-s1 = s.result(s.initial, "W")
-s.display(s1)
+# s = Sokoban()
+# print(s.goal_test(SokobanState(standard_world)))
+# print(s.actions(s.initial))
+# s1 = s.result(s.initial, "W")
+# s.display(s1)
