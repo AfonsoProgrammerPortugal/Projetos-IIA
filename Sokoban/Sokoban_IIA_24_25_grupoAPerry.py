@@ -125,11 +125,40 @@ class SokobanState:
     def __eq__(self, other):
         return self.world_str == other.world_str
 
+###########################################################################
+
+def is_invalid_corner(row, col, world):
+    return (world[row - 1][col] == "#" and world[row][col + 1] == "#") or \
+            (world[row][col + 1] == "#" and world[row + 1][col] == "#") or \
+            (world[row + 1][col] == "#" and world[row][col - 1] == "#") or \
+            (world[row][col - 1] == "#" and world[row - 1][col] == "#")
+
+def process_world(initial_world):
+    world = initial_world.split("\n")
+    world = [list(row) for row in world]
+    dict = {"sokoban": (), "caixas": []}
+    corners = []
+
+    for row in range(len(world)):
+        for col in range(len(world[row])):
+            char = world[row][col]
+            if char in "@+":
+                dict["sokoban"] = (row, col)
+                if char == "+":
+                    world[row][col] = "o"
+                else:
+                    world[row][col] = ""
+            elif char in "$*":
+                dict["caixas"].append((row, col))
+
+            elif char == "." and is_invalid_corner(row, col, world):
+                corners.append((row, col))
+
 ############################ SokobanProblem ###############################
 
 class Sokoban(Problem):
     def __init__(self, situacaoInicial = standard_world):
-        self.initial = SokobanState(situacaoInicial)
+        self.initial, self.layout, self.corners = process_world(situacaoInicial)
         super().__init__(self.initial)
 
     def actions(self, state):
