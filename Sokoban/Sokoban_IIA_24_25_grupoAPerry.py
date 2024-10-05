@@ -33,15 +33,15 @@ def is_invalid_corner(row, col, world):
             (world[row][col - 1] == "#" and world[row - 1][col] == "#")
 
 def process_world(initial_world):
-    world = initial_world.split("\n")
-    world = [list(row) for row in world]
-    state = {"sokoban": tuple(), "caixas": set()}
+    world = [list(row) for row in initial_world.split("\n")]
+    state = {"sokoban": tuple(), "boxes": set()}
     corners = set()
     objectives = set()
 
     for row in range(len(world)):
         for col in range(len(world[row])):
             char = world[row][col]
+
             if char in "@+":
                 state["sokoban"] = (row, col)
                 if is_invalid_corner(row, col, world):
@@ -51,22 +51,25 @@ def process_world(initial_world):
                     objectives.add((row, col))
                 else:
                     world[row][col] = "."
+
             elif char in "$*":
-                state["caixas"].add((row, col))
+                state["boxes"].add((row, col))
                 if char == "*":
                     world[row][col] = "o"
                     objectives.add((row, col))
                 else:
                     world[row][col] = "."
+
             elif char == "." and is_invalid_corner(row, col, world):
                 corners.add((row, col))
+
             elif char == "o":
                 objectives.add((row, col))
 
     return state, world, corners, objectives
 
 def is_box(row, col, state):
-    return (row, col) in state["caixas"]
+    return (row, col) in state["boxes"]
 
 ############################ SokobanProblem ###############################
 
@@ -88,8 +91,8 @@ class Sokoban(Problem):
         new_state["sokoban"] = (r_target, c_target)
 
         if is_box(r_target, c_target, state):
-            new_state["caixas"].remove((r_target, c_target))
-            new_state["caixas"].add((r_next, c_next))
+            new_state["boxes"].remove((r_target, c_target))
+            new_state["boxes"].add((r_next, c_next))
 
         return new_state
 
@@ -103,7 +106,7 @@ class Sokoban(Problem):
         return new_state
 
     def goal_test(self, state):
-        return state["caixas"] == self.objectives
+        return state["boxes"] == self.objectives
 
     def display(self, state):
         result = copy.deepcopy(self.layout)
@@ -114,11 +117,11 @@ class Sokoban(Problem):
         else:
             result[sokoban_r][sokoban_c] = "@"
 
-        for caixa_r, caixa_c in state["caixas"]:
-            if result[caixa_r][caixa_c] == "o":
-                result[caixa_r][caixa_c] = "*"
+        for box_r, box_c in state["boxes"]:
+            if result[box_r][box_c] == "o":
+                result[box_r][box_c] = "*"
             else:
-                result[caixa_r][caixa_c] = "$"
+                result[box_r][box_c] = "$"
 
         result = ["".join(row) for row in result]
         result_str = "\n".join(result)
