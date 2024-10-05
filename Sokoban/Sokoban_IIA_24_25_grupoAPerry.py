@@ -35,9 +35,9 @@ def is_invalid_corner(row, col, world):
 def process_world(initial_world):
     world = initial_world.split("\n")
     world = [list(row) for row in world]
-    state = {"sokoban": (), "caixas": []}
-    corners = []
-    objectives = []
+    state = {"sokoban": tuple(), "caixas": set()}
+    corners = set()
+    objectives = set()
 
     for row in range(len(world)):
         for col in range(len(world[row])):
@@ -45,23 +45,23 @@ def process_world(initial_world):
             if char in "@+":
                 state["sokoban"] = (row, col)
                 if is_invalid_corner(row, col, world):
-                    corners.append((row, col))
+                    corners.add((row, col))
                 if char == "+":
                     world[row][col] = "o"
-                    objectives.append((row, col))
+                    objectives.add((row, col))
                 else:
                     world[row][col] = "."
             elif char in "$*":
-                state["caixas"].append((row, col))
+                state["caixas"].add((row, col))
                 if char == "*":
                     world[row][col] = "o"
-                    objectives.append((row, col))
+                    objectives.add((row, col))
                 else:
                     world[row][col] = "."
             elif char == "." and is_invalid_corner(row, col, world):
-                corners.append((row, col))
+                corners.add((row, col))
             elif char == "o":
-                objectives.append((row, col))
+                objectives.add((row, col))
 
     return state, world, corners, objectives
 
@@ -89,7 +89,7 @@ class Sokoban(Problem):
 
         if is_box(r_target, c_target, state):
             new_state["caixas"].remove((r_target, c_target))
-            new_state["caixas"].append((r_next, c_next))
+            new_state["caixas"].add((r_next, c_next))
 
         return new_state
 
@@ -103,11 +103,7 @@ class Sokoban(Problem):
         return new_state
 
     def goal_test(self, state):
-        for caixa in state["caixas"]:
-            if caixa not in self.objectives:
-                return False
-
-        return True
+        return state["caixas"] == self.objectives
 
     def display(self, state):
         result = copy.deepcopy(self.layout)
