@@ -1,3 +1,7 @@
+# Grupo 88
+# Renan Silva   - 59802
+# Afonso Santos - 59808
+
 from searchPlus import *
 import copy
 
