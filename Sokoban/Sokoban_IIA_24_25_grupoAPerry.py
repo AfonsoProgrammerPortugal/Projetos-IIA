@@ -19,6 +19,9 @@ mundoStandard=linha1+linha2+linha3+linha4+linha5+linha6+linha7+linha8+linha9
 #  $   (dólar)      Caixa no chão
 #  *   (asterisco)  Caixa no objectivo
 
+######################## metodos auxiliares #############################
+
+# metodo para obter as duas posicoes seguintes na direcao dada
 def get_target_and_next_coords(row, col, direction):
     r, c = row, col
     if direction == "N":   return r-1, c, r-2, c
@@ -26,12 +29,17 @@ def get_target_and_next_coords(row, col, direction):
     elif direction == "E": return r, c+1, r, c+2
     else:                  return r+1, c, r+2, c
 
+# metodo que verifica se uma dada posicao
+# configura um canto invalido para um certa matriz
 def is_invalid_corner(row, col, world):
     return (world[row - 1][col] == "#" and world[row][col + 1] == "#") or \
             (world[row][col + 1] == "#" and world[row + 1][col] == "#") or \
             (world[row + 1][col] == "#" and world[row][col - 1] == "#") or \
             (world[row][col - 1] == "#" and world[row - 1][col] == "#")
 
+# metodo para processar uma string que representa um mundo
+# do sokoban, retornando o estado atual do jogo, a matriz
+# layout do mundo, o conjunto dos cantos e dos objetivos
 def process_world(initial_world):
     world = [list(row) for row in initial_world.split("\n")]
     state = {"sokoban": tuple(), "boxes": set()}
@@ -68,6 +76,7 @@ def process_world(initial_world):
 
     return state, world, corners, objectives
 
+# metodo que diz se há uma caixa em uma dada posicao para um dado estado
 def is_box(row, col, state):
     return (row, col) in state["boxes"]
 
@@ -87,9 +96,10 @@ class Sokoban(Problem):
         r, c = state["sokoban"]
         r_target, c_target, r_next, c_next = get_target_and_next_coords(r, c, direction)
 
-        # posiCAo nova do Sokoban
+        # nova posicao do Sokoban
         new_state["sokoban"] = (r_target, c_target)
 
+        # mover caixa se existir alguma na posicao
         if is_box(r_target, c_target, state):
             new_state["boxes"].remove((r_target, c_target))
             new_state["boxes"].add((r_next, c_next))
@@ -112,13 +122,13 @@ class Sokoban(Problem):
         result = copy.deepcopy(self.layout)
         sokoban_r, sokoban_c = state["sokoban"]
 
-        if result[sokoban_r][sokoban_c] == "o":
+        if (sokoban_r, sokoban_c) in self.objectives:
             result[sokoban_r][sokoban_c] = "+"
         else:
             result[sokoban_r][sokoban_c] = "@"
 
         for box_r, box_c in state["boxes"]:
-            if result[box_r][box_c] == "o":
+            if (box_r, box_c) in self.objectives:
                 result[box_r][box_c] = "*"
             else:
                 result[box_r][box_c] = "$"
@@ -128,11 +138,15 @@ class Sokoban(Problem):
 
         return result_str
 
+    # metodo que verifica se uma dada posicao esta vazia,
+    # considerando para isso o layout do mundo e o estado dado
     def is_empty(self, row, col, state):
         return (self.layout[row][col] in ".o" and
                 state["sokoban"] != (row, col) and
                 not is_box(row, col, state))
 
+    # metodo que verifica se um dado movimento eh
+    # valido para o mundo e o estado em causa
     def can_move(self, direction, state):
         r, c = state["sokoban"]
         r_target, c_target, r_next, c_next = get_target_and_next_coords(r, c, direction)
@@ -140,12 +154,3 @@ class Sokoban(Problem):
         return self.is_empty(r_target, c_target, state) or \
               (is_box(r_target, c_target, state) and self.is_empty(r_next, c_next, state) and
               (r_next, c_next) not in self.corners)
-
-gx=Sokoban()
-resultado,vis = breadth_first_search_iia_count(gx)
-if resultado:
-    print("Solução Larg-prim (grafo) com custo", str(resultado.path_cost)+":")
-    print(resultado.solution())
-else:
-    print('Sem Solução')
-print("Visitados:",vis)
