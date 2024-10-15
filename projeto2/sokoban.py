@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from searchPlus import *
 
 import copy
@@ -11,7 +13,7 @@ def manhattan(p,q):
 
 def conv_txt(txt):
     linhas=txt.split('\n')
-    linhas=[linha for linha in linhas] 
+    linhas=[linha for linha in linhas]
     dados={'caixas':set(), 'objectivos':set(), 'navegáveis':set(), 'paredes':set()}
     map_puzzle={}
     y=0
@@ -46,14 +48,14 @@ def conv_txt(txt):
     return dados
 
 
-class EstadoSokoban(dict): 
+class EstadoSokoban(dict):
     def __hash__(self):
         #print(self['caixas'])
         ll=list(self['caixas'])
         ll.append(self['sokoban'])
         ll.sort()
         return hash(str(ll))
-    
+
     def __lt__(self,other):
         """Um estado é sempre menor do que qualquer outro, para desempate na fila de prioridades"""
         return True
@@ -73,13 +75,13 @@ mundoStandard=linha1+linha2+linha3+linha4+linha5+linha6+linha7+linha8+linha9
 
 class Sokoban(Problem):
     """O """
-    
+
     dict_actions = {'N': (-1,0), 'W': (0,-1), 'E': (0,1), 'S': (1,0)}
 
     def __init__(self, initial=None,goal=None,situacaoInicial=mundoStandard):
         """A partir do puzzle em txt geramos um dicionários de onde extráimos:
         * o estado, as posições objectivo, as casas bavegáveis, o mapa e as paredes.
-        No estado ficamos com a célula (linha,coluna) com a posição do Sokoban e 
+        No estado ficamos com a célula (linha,coluna) com a posição do Sokoban e
         o conjunto das posições das caixas."""
         dados=conv_txt(situacaoInicial)
         self.initial=EstadoSokoban()
@@ -90,7 +92,7 @@ class Sokoban(Problem):
         self.mapa=dados['mapa']
         self.paredes=dados['paredes']
         self.proibidas=self.calc_traps()
-        
+
     def possible(self,sokoban,caixas,deltas):
         l,c=sokoban
         #print('sokoban:',(l,c))
@@ -106,8 +108,8 @@ class Sokoban(Problem):
             l2,c2=l1+dl,c1+dc
             #print('nextnext:',(l2,c2),'In caixas?',(l2,c2) in caixas,'In navegáveis?',(l2,c2) in self.navegaveis)
             return (l2,c2) in self.navegaveis and (l2,c2) not in self.proibidas and (l2,c2) not in caixas
-   
-        
+
+
     def its_a_trap(self,cel):
         viz=[]
         num_viz=0
@@ -126,18 +128,18 @@ class Sokoban(Problem):
         l1,c1=viz[0]
         l2,c2=viz[1]
         return l1!=l2 and c1!=c2
-        
+
     def calc_traps(self):
         the_traps=set()
         for n in self.navegaveis:
             if not n in self.goal and self.its_a_trap(n):
                 the_traps.add(n)
         return the_traps
-        
+
     def actions(self, state):
         sokoban=state['sokoban']
         return [action for action in self.dict_actions if self.possible(sokoban,state['caixas'],self.dict_actions[action])]
-    
+
     def result(self, state, action):
         clone=copy.deepcopy(state)
         l,c=clone['sokoban']
@@ -180,7 +182,7 @@ class Sokoban(Problem):
         elif (l,c) in self.paredes:
             return '#'
         return ' '
-        
+
     def display(self, state):
         """Devolve a grelha em modo txt"""
         puzzle=''
@@ -204,7 +206,7 @@ class Sokoban(Problem):
             if d_sokoban > max_distancia_sokoban:
                 max_distancia_sokoban = d_sokoban
         return max_distancia_sokoban
-    
+
     def h_inutil_2(self, node):
         """Heurística inútil pois só conta quantas caixas falta arrumar nos lugares de armazenamento."""
         clone=copy.deepcopy(node.state)
@@ -216,3 +218,46 @@ class Sokoban(Problem):
             if caixa in self.goal:
                 n_caixas_desarrumadas -= 1
         return n_caixas_desarrumadas
+
+    def get_dist_closest_box(self, obj, available_boxes):
+        min, used_box = manhattan(available_boxes[0], obj), available_boxes[0]
+
+        if len(available_boxes) > 1:
+            # obtem a distancia ate a caixa mais proxima
+            for box in available_boxes[1:]:
+                if manhattan(box, obj) < min:
+                    min, used_box = manhattan(box, obj), box
+
+        # remove-se a caixa utilizada
+        available_boxes.remove(used_box)
+
+        return min
+
+    def get_max_available_box(self, node):
+        boxes = copy.deepcopy(node.state['caixas'])
+        max = -1
+
+        for box in boxes:
+            if box not in self.goal and manhattan(box, node.state['sokoban']) > max:
+                max = manhattan(box, node.state['sokoban'])
+
+        return max
+
+    def h_util(self, node):
+        """Para cada objetivo (lugar de armazenamento), calcula a distância de Manhattan à caixa mais próxima
+        que ainda não foi alocada, ignorando a existência de paredes e/ou obstáculos, e aloca essa caixa ao objetivo.
+        O valor da heurística é a soma todas estas distâncias + a distância entre o sokoban e a caixa mais longínqua
+        que ainda não está arrumada. Se estamos num estado final, devolve 0."""
+
+        if self.goal_test(node.state):
+            return 0
+
+        sum = 0
+        available_boxes = list(node.state['caixas'])
+
+        for obj in self.goal:
+            sum += self.get_dist_closest_box(obj, available_boxes)
+
+        dist = self.get_max_available_box(node)
+
+        return sum + dist
