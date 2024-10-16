@@ -269,3 +269,55 @@ class Sokoban(Problem):
             dist = self.get_max_available_box(node)
 
             return summ + dist
+
+############################ Algoritmo Beam Search ################################
+
+# Podemos nos basear nesse algoritmo para fazer o beam_search_plus_count
+def best_first_graph_search_plus_count(problem, f):
+    f = memoize(f, 'f')
+    node = Node(problem.initial)
+    if problem.goal_test(node.state):
+        return node,0
+    frontier = PriorityQueue(min, f)
+    frontier.append(node)
+    explored = set()
+    visited_not_explored={node.state}
+    while frontier:
+        node = frontier.pop()
+        if problem.goal_test(node.state):
+            return node,len(explored)
+        explored.add(node.state)
+        visited_not_explored.remove(node.state)
+        for child in node.expand(problem):
+            if child.state not in explored:
+                if child.state not in visited_not_explored:
+                    frontier.append(child)
+                    visited_not_explored.add(child.state)
+                else:
+                    incumbent = frontier[child]
+                    if f(child) < f(incumbent):
+                        del frontier[incumbent]
+                        frontier.append(child)
+    return None, len(explored)
+
+def beam_search_plus_count(problem, W, f):
+    """Beam Search: search the nodes with the best W scores in each depth.
+       Return the solution and how many nodes were expanded."""
+    f = memoize(f, 'f')
+    node = Node(problem.initial)
+    pass
+
+# NAO MEXER NESSA FUNCAO !!!
+def beam_search(problem, W, h=None):
+    """Beam graph search with f(n) = g(n)+h(n).
+    You need to specify W and the h function when you call beam_search, or
+    else in your Problem subclass."""
+    h = memoize(h or problem.h, 'h')
+    return beam_search_plus_count(problem, W, lambda n: n.path_cost + h(n))
+
+
+def IW_beam_search(problem, h):
+    """IW_beam_search (Iterative Widening Beam Search) começa com beam width W=1 e aumenta W iterativamente até
+    se obter uma solução. Devolve a solução, o W com que se encontrou a solução, e o número total (acumulado desde W=1)
+    de nós expandidos. Assume-se que existe uma solução."""
+    pass
