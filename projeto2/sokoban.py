@@ -219,29 +219,38 @@ class Sokoban(Problem):
                 n_caixas_desarrumadas -= 1
         return n_caixas_desarrumadas
 
-    def get_dist_closest_box(self, obj, available_boxes):
-        min, used_box = manhattan(available_boxes[0], obj), available_boxes[0]
+    def get_sum_dist_closest_box(self, objectives, boxes):
+        total = 0
 
-        if len(available_boxes) > 1:
-            # obtem a distancia ate a caixa mais proxima
-            for box in available_boxes[1:]:
-                if manhattan(box, obj) < min:
-                    min, used_box = manhattan(box, obj), box
+        for obj in objectives:
+            if len(boxes) > 0:
+                minimum, used_box = manhattan(boxes[0], obj), boxes[0]
 
-        # remove-se a caixa utilizada
-        available_boxes.remove(used_box)
+                # obtem a distancia ate a caixa mais proxima
+                for box in boxes:
+                    dist = manhattan(box, obj)
+                    if dist < minimum:
+                        minimum, used_box = dist, box
 
-        return min
+                # remove-se a caixa utilizada
+                boxes.remove(used_box)
+                total += minimum
+
+            else:
+                break
+
+        return total
 
     def get_max_available_box(self, node):
         boxes = copy.deepcopy(node.state['caixas'])
-        max = -1
+        maximum = -1
 
         for box in boxes:
-            if box not in self.goal and manhattan(box, node.state['sokoban']) > max:
-                max = manhattan(box, node.state['sokoban'])
+            dist = manhattan(box, node.state['sokoban'])
+            if box not in self.goal and dist > maximum:
+                maximum = dist
 
-        return max
+        return maximum
 
     def h_util(self, node):
         """Para cada objetivo (lugar de armazenamento), calcula a distância de Manhattan à caixa mais próxima
@@ -252,12 +261,11 @@ class Sokoban(Problem):
         if self.goal_test(node.state):
             return 0
 
-        sum = 0
-        available_boxes = list(node.state['caixas'])
+        else:
+            objectives = list(copy.deepcopy(self.goal))
+            boxes = list(copy.deepcopy(node.state['caixas']))
 
-        for obj in self.goal:
-            sum += self.get_dist_closest_box(obj, available_boxes)
+            summ = self.get_sum_dist_closest_box(objectives, boxes)
+            dist = self.get_max_available_box(node)
 
-        dist = self.get_max_available_box(node)
-
-        return sum + dist
+            return summ + dist
