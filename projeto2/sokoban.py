@@ -1,6 +1,7 @@
 from copy import deepcopy
 
 from searchPlus import *
+from ProblemaGrafoHs import *
 
 import copy
 
@@ -305,7 +306,30 @@ def beam_search_plus_count(problem, W, f):
        Return the solution and how many nodes were expanded."""
     f = memoize(f, 'f')
     node = Node(problem.initial)
-    pass
+    if problem.goal_test(node.state):
+        return node, 0
+    temp = PriorityQueue(min, f)
+    frontier = PriorityQueue(min, f)
+    frontier.append(node)
+    explored = set()
+    while frontier.__len__() > 0 or temp.__len__() > 0:
+        if frontier.__len__() == 0:
+            iterations = W if W <= temp.__len__() else temp.__len__()
+            for _ in range(iterations):
+                frontier.append(temp.pop())
+
+            while temp.__len__() > 0:
+                temp.pop()
+
+        else:
+            node = frontier.pop()
+            if problem.goal_test(node.state):
+                return node, len(explored)
+            explored.add(node.state)
+            for child in node.expand(problem):
+                if child.state not in explored:
+                    temp.append(child)
+    return None, len(explored)
 
 # NAO MEXER NESSA FUNCAO !!!
 def beam_search(problem, W, h=None):
@@ -320,4 +344,17 @@ def IW_beam_search(problem, h):
     """IW_beam_search (Iterative Widening Beam Search) começa com beam width W=1 e aumenta W iterativamente até
     se obter uma solução. Devolve a solução, o W com que se encontrou a solução, e o número total (acumulado desde W=1)
     de nós expandidos. Assume-se que existe uma solução."""
-    pass
+    return best_first_graph_search_plus_count(problem, h)
+
+linha1="##########\n"
+linha2="#........#\n"
+linha3="#..$..+..#\n"
+linha4="#........#\n"
+linha5="##########\n"
+mundoS=linha1+linha2+linha3+linha4+linha5
+s=Sokoban(situacaoInicial=mundoS)
+res, exp = beam_search(s,1,s.h_inutil_1)
+if res:
+    print(res.solution())
+else:
+    print('No solution!')
