@@ -310,32 +310,43 @@ def beam_search_plus_count(problem, W, f):
     frontier = PriorityQueue(min, f)
     frontier.append(node)
     explored = set()
-    visited_not_explored = {node.state}
+    frontier_visited_not_explored = {node.state}
+    temp_visited_not_explored = set()
     while frontier.__len__() > 0 or temp.__len__() > 0:
         if frontier.__len__() == 0:
+            frontier_visited_not_explored.clear()
+            temp_visited_not_explored.clear()
             iterations = min(W, temp.__len__())
             for _ in range(iterations):
-                frontier.append(temp.pop())
-            while temp.__len__() > 0:
                 n = temp.pop()
-                if n.state in visited_not_explored:
-                    visited_not_explored.remove(n.state)
+                frontier_visited_not_explored.add(n.state)
+                frontier.append(n)
+            while temp.__len__() > 0:
+                temp.pop()
         else:
             node = frontier.pop()
             if problem.goal_test(node.state):
                 return node, len(explored)
             explored.add(node.state)
-            visited_not_explored.remove(node.state)
+            # if node.state in frontier_visited_not_explored:
+            frontier_visited_not_explored.remove(node.state)
             for child in node.expand(problem):
                 if child.state not in explored:
-                    if child.state not in visited_not_explored:
+                    if child.state not in frontier_visited_not_explored and child.state not in temp_visited_not_explored:
                         temp.append(child)
-                        visited_not_explored.add(child.state)
-                    # else:
-                    #     incumbent = frontier[child]
-                    #     if f(child) < f(incumbent):
-                    #         del frontier[incumbent]
-                    #         temp.append(child)
+                        temp_visited_not_explored.add(child.state)
+                    elif child.state in frontier_visited_not_explored:
+                        incumbent = frontier[child]
+                        if f(child) < f(incumbent):
+                            del frontier[incumbent]
+                            frontier_visited_not_explored.remove(child.state)
+                            temp.append(child)
+                            temp_visited_not_explored.add(child.state)
+                    elif child.state in temp_visited_not_explored:
+                        incumbent = temp[child]
+                        if f(child) < f(incumbent):
+                            del temp[incumbent]
+                            temp.append(child)
     return None, len(explored)
 
 # NAO MEXER NESSA FUNCAO !!!
@@ -348,54 +359,19 @@ def beam_search(problem, W, h=None):
 
 
 def IW_beam_search(problem, h):
-    W = 1
-    h = memoize(h, 'h')
-    node = Node(problem.initial)
-    if problem.goal_test(node.state):
-        return node, W, 0
-    temp = PriorityQueue(min, h)
-    frontier = PriorityQueue(min, h)
-    frontier.append(node)
-    explored = set()
-    visited_not_explored = {node.state}
-    while frontier.__len__() > 0 or temp.__len__() > 0:
-        if frontier.__len__() == 0:
-            iterations = min(W, temp.__len__())
-            for _ in range(iterations):
-                frontier.append(temp.pop())
-            while temp.__len__() > 0:
-                n = temp.pop()
-                if n.state in visited_not_explored:
-                    visited_not_explored.remove(n.state)
+    w = 1
+    total_exp = 0
+    while True:
+        result, n_exp = beam_search(problem, w, h)
+        total_exp += n_exp
+        if result is not None:
+            return result, w, total_exp
+        w += 1
 
-            W += 1
-        else:
-            node = frontier.pop()
-            if problem.goal_test(node.state):
-                return node, W, len(explored)
-            explored.add(node.state)
-            visited_not_explored.remove(node.state)
-            for child in node.expand(problem):
-                if child.state not in explored:
-                    if child.state not in visited_not_explored:
-                        temp.append(child)
-                        visited_not_explored.add(child.state)
-                    # else:
-                    #     incumbent = temp[child]
-                    #     if f(child) < f(incumbent):
-                    #         del temp[incumbent]
-                    #         temp.append(child)
-    return None, W, len(explored)
 
-linha1="##########\n"
-linha2="#........#\n"
-linha3="#..$..+..#\n"
-linha4="#........#\n"
-linha5="##########\n"
-mundoS=linha1+linha2+linha3+linha4+linha5
-s=Sokoban(situacaoInicial=mundoS)
-res, exp = beam_search(s,3,s.h_inutil_2)
-if res:
-    print(res.solution())
+p=ProblemaGrafoHs()
+res, W, exp = IW_beam_search(p,p.h2)
+if res==None:
+    print('Nope')
 else:
-    print('No solution!')
+    print(W)
