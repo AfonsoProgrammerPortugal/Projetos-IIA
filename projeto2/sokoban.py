@@ -312,23 +312,32 @@ def beam_search_plus_count(problem, W, f):
     frontier = PriorityQueue(min, f)
     frontier.append(node)
     explored = set()
+    visited_not_explored = {node.state}
     while frontier.__len__() > 0 or temp.__len__() > 0:
         if frontier.__len__() == 0:
-            iterations = W if W <= temp.__len__() else temp.__len__()
+            iterations = min(W, temp.__len__())
             for _ in range(iterations):
                 frontier.append(temp.pop())
-
             while temp.__len__() > 0:
-                temp.pop()
-
+                n = temp.pop()
+                if n.state in visited_not_explored:
+                    visited_not_explored.remove(n.state)
         else:
             node = frontier.pop()
             if problem.goal_test(node.state):
                 return node, len(explored)
             explored.add(node.state)
+            visited_not_explored.remove(node.state)
             for child in node.expand(problem):
                 if child.state not in explored:
-                    temp.append(child)
+                    if child.state not in visited_not_explored:
+                        temp.append(child)
+                        visited_not_explored.add(child.state)
+                    # else:
+                    #     incumbent = temp[child]
+                    #     if f(child) < f(incumbent):
+                    #         del temp[incumbent]
+                    #         temp.append(child)
     return None, len(explored)
 
 # NAO MEXER NESSA FUNCAO !!!
@@ -346,15 +355,9 @@ def IW_beam_search(problem, h):
     de nós expandidos. Assume-se que existe uma solução."""
     return best_first_graph_search_plus_count(problem, h)
 
-linha1="##########\n"
-linha2="#........#\n"
-linha3="#..$..+..#\n"
-linha4="#........#\n"
-linha5="##########\n"
-mundoS=linha1+linha2+linha3+linha4+linha5
-s=Sokoban(situacaoInicial=mundoS)
-res, exp = beam_search(s,1,s.h_inutil_1)
-if res:
-    print(res.solution())
+p=ProblemaGrafoHs()
+res, exp = beam_search(p,2,p.h1)
+if res==None:
+    print('Nope')
 else:
-    print('No solution!')
+    print(res.path_cost)
