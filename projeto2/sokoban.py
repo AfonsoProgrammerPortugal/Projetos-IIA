@@ -313,6 +313,7 @@ def beam_search_plus_count(problem, W, f):
     frontier_visited_not_explored = {node.state}
     temp_visited_not_explored = set()
     while frontier.__len__() > 0 or temp.__len__() > 0:
+        # No caso de ja ter expandido todos os melhores nodes
         if frontier.__len__() == 0:
             frontier_visited_not_explored.clear()
             temp_visited_not_explored.clear()
@@ -323,18 +324,23 @@ def beam_search_plus_count(problem, W, f):
                 frontier.append(n)
             while temp.__len__() > 0:
                 temp.pop()
+        # No caso de ainda faltarem nodes a serem expandidos
         else:
             node = frontier.pop()
             if problem.goal_test(node.state):
                 return node, len(explored)
             explored.add(node.state)
-            # if node.state in frontier_visited_not_explored:
             frontier_visited_not_explored.remove(node.state)
+            # Analisar cada filho do node que estamos a expandir
             for child in node.expand(problem):
+                # Apenas consideramos nodes filhos cujos estados ainda nao foram expandidos
                 if child.state not in explored:
+                    # No caso do node estar "limpo"
                     if child.state not in frontier_visited_not_explored and child.state not in temp_visited_not_explored:
                         temp.append(child)
                         temp_visited_not_explored.add(child.state)
+                    # Escolhemos o melhor caminho no caso do estado do
+                    # node ja estar na fronteira mas ainda nao expandido
                     elif child.state in frontier_visited_not_explored:
                         incumbent = frontier[child]
                         if f(child) < f(incumbent):
@@ -342,6 +348,8 @@ def beam_search_plus_count(problem, W, f):
                             frontier_visited_not_explored.remove(child.state)
                             temp.append(child)
                             temp_visited_not_explored.add(child.state)
+                    # Escolhemos o melhor caminho no caso do estado do node ja estar
+                    # em temp (na mesmo profundidade) mais ainda nao expandido
                     elif child.state in temp_visited_not_explored:
                         incumbent = temp[child]
                         if f(child) < f(incumbent):
@@ -349,7 +357,6 @@ def beam_search_plus_count(problem, W, f):
                             temp.append(child)
     return None, len(explored)
 
-# NAO MEXER NESSA FUNCAO !!!
 def beam_search(problem, W, h=None):
     """Beam graph search with f(n) = g(n)+h(n).
     You need to specify W and the h function when you call beam_search, or
