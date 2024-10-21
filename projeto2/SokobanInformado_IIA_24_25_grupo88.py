@@ -1,16 +1,15 @@
-from copy import deepcopy
-
-from searchPlus import *
-from ProblemaGrafoHs import *
+# Grupo 88
+# Renan Silva   - 59802
+# Afonso Santos - 59808
 
 import copy
-
+from ProblemaGrafoHs import *
+from searchPlus import *
 
 def manhattan(p,q):
     (x1,y1) = p
     (x2,y2) = q
     return abs(x1-x2) + abs(y1-y2)
-
 
 def conv_txt(txt):
     linhas=txt.split('\n')
@@ -48,7 +47,6 @@ def conv_txt(txt):
     dados["mapa"]=map_puzzle
     return dados
 
-
 class EstadoSokoban(dict):
     def __hash__(self):
         #print(self['caixas'])
@@ -61,7 +59,6 @@ class EstadoSokoban(dict):
         """Um estado é sempre menor do que qualquer outro, para desempate na fila de prioridades"""
         return True
 
-
 linha1= "  #####\n"
 linha2= "###...#\n"
 linha3= "#o@$..#\n"
@@ -73,10 +70,8 @@ linha8= "#......#\n"
 linha9= "########\n"
 mundoStandard=linha1+linha2+linha3+linha4+linha5+linha6+linha7+linha8+linha9
 
-
 class Sokoban(Problem):
     """O """
-
     dict_actions = {'N': (-1,0), 'W': (0,-1), 'E': (0,1), 'S': (1,0)}
 
     def __init__(self, initial=None,goal=None,situacaoInicial=mundoStandard):
@@ -109,7 +104,6 @@ class Sokoban(Problem):
             l2,c2=l1+dl,c1+dc
             #print('nextnext:',(l2,c2),'In caixas?',(l2,c2) in caixas,'In navegáveis?',(l2,c2) in self.navegaveis)
             return (l2,c2) in self.navegaveis and (l2,c2) not in self.proibidas and (l2,c2) not in caixas
-
 
     def its_a_trap(self,cel):
         viz=[]
@@ -273,34 +267,6 @@ class Sokoban(Problem):
 
 ############################ Algoritmo Beam Search ################################
 
-# Podemos nos basear nesse algoritmo para fazer o beam_search_plus_count
-def best_first_graph_search_plus_count(problem, f):
-    f = memoize(f, 'f')
-    node = Node(problem.initial)
-    if problem.goal_test(node.state):
-        return node,0
-    frontier = PriorityQueue(min, f)
-    frontier.append(node)
-    explored = set()
-    visited_not_explored={node.state}
-    while frontier:
-        node = frontier.pop()
-        if problem.goal_test(node.state):
-            return node,len(explored)
-        explored.add(node.state)
-        visited_not_explored.remove(node.state)
-        for child in node.expand(problem):
-            if child.state not in explored:
-                if child.state not in visited_not_explored:
-                    frontier.append(child)
-                    visited_not_explored.add(child.state)
-                else:
-                    incumbent = frontier[child]
-                    if f(child) < f(incumbent):
-                        del frontier[incumbent]
-                        frontier.append(child)
-    return None, len(explored)
-
 def beam_search_plus_count(problem, W, f):
     f = memoize(f, 'f')
     node = Node(problem.initial)
@@ -375,11 +341,3 @@ def IW_beam_search(problem, h):
         if result is not None:
             return result, w, total_exp
         w += 1
-
-
-p=ProblemaGrafoHs()
-res, W, exp = IW_beam_search(p,p.h2)
-if res==None:
-    print('Nope')
-else:
-    print(W)
