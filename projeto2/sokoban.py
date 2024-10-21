@@ -306,55 +306,56 @@ def beam_search_plus_count(problem, W, f):
     node = Node(problem.initial)
     if problem.goal_test(node.state):
         return node, 0
-    temp = PriorityQueue(min, f)
-    frontier = PriorityQueue(min, f)
-    frontier.append(node)
+    parents = PriorityQueue(min, f)
+    parents.append(node)
+    children = PriorityQueue(min, f)
     explored = set()
-    frontier_visited_not_explored = {node.state}
-    temp_visited_not_explored = set()
-    while frontier.__len__() > 0 or temp.__len__() > 0:
-        # No caso de ja ter expandido todos os melhores nodes
-        if frontier.__len__() == 0:
-            frontier_visited_not_explored.clear()
-            temp_visited_not_explored.clear()
-            iterations = min(W, temp.__len__())
+    parents_visited_not_explored = {node.state}
+    children_visited_not_explored = set()
+    while parents.__len__() > 0 or children.__len__() > 0:
+        # no caso de ja ter expandido todos os melhores nodes
+        if parents.__len__() == 0:
+            parents_visited_not_explored.clear()
+            children_visited_not_explored.clear()
+            iterations = min(W, children.__len__())
+            # inserir os W melhores filhos no conjunto dos pais
             for _ in range(iterations):
-                n = temp.pop()
-                frontier_visited_not_explored.add(n.state)
-                frontier.append(n)
-            while temp.__len__() > 0:
-                temp.pop()
-        # No caso de ainda faltarem nodes a serem expandidos
+                node = children.pop()
+                parents_visited_not_explored.add(node.state)
+                parents.append(node)
+            # remover os filhos restantes
+            while children.__len__() > 0:
+                children.pop()
+        # no caso de ainda faltarem nodes a serem expandidos
         else:
-            node = frontier.pop()
+            node = parents.pop()
             if problem.goal_test(node.state):
                 return node, len(explored)
             explored.add(node.state)
-            frontier_visited_not_explored.remove(node.state)
-            # Analisar cada filho do node que estamos a expandir
+            parents_visited_not_explored.remove(node.state)
+            # analisar cada filho do node que estamos a expandir
             for child in node.expand(problem):
-                # Apenas consideramos nodes filhos cujos estados ainda nao foram expandidos
                 if child.state not in explored:
-                    # No caso do node estar "limpo"
-                    if child.state not in frontier_visited_not_explored and child.state not in temp_visited_not_explored:
-                        temp.append(child)
-                        temp_visited_not_explored.add(child.state)
-                    # Escolhemos o melhor caminho no caso do estado do
-                    # node ja estar na fronteira mas ainda nao expandido
-                    elif child.state in frontier_visited_not_explored:
-                        incumbent = frontier[child]
+                    # no caso do node estar "limpo"
+                    if child.state not in parents_visited_not_explored and child.state not in children_visited_not_explored:
+                        children.append(child)
+                        children_visited_not_explored.add(child.state)
+                    # escolhemos o melhor caminho no caso do estado do filho ja estar
+                    # presente no conjunto dos pais (mas ainda nao expandido)
+                    elif child.state in parents_visited_not_explored:
+                        incumbent = parents[child]
                         if f(child) < f(incumbent):
-                            del frontier[incumbent]
-                            frontier_visited_not_explored.remove(child.state)
-                            temp.append(child)
-                            temp_visited_not_explored.add(child.state)
-                    # Escolhemos o melhor caminho no caso do estado do node ja estar
-                    # em temp (na mesmo profundidade) mais ainda nao expandido
-                    elif child.state in temp_visited_not_explored:
-                        incumbent = temp[child]
+                            del parents[incumbent]
+                            parents_visited_not_explored.remove(child.state)
+                            children.append(child)
+                            children_visited_not_explored.add(child.state)
+                    # escolhemos o melhor caminho no caso do estado do filho
+                    # ja estar no conjunto dos filhos (na mesmo profundidade)
+                    elif child.state in children_visited_not_explored:
+                        incumbent = children[child]
                         if f(child) < f(incumbent):
-                            del temp[incumbent]
-                            temp.append(child)
+                            del children[incumbent]
+                            children.append(child)
     return None, len(explored)
 
 def beam_search(problem, W, h=None):
