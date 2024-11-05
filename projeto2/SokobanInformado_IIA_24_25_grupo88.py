@@ -1,15 +1,15 @@
-from copy import deepcopy
-
-from searchPlus import *
-from ProblemaGrafoHs import *
+# Grupo 88
+# Renan Silva   - 59802
+# Afonso Santos - 59808
 
 import copy
+from ProblemaGrafoHs import *
+from searchPlus import *
 
 def manhattan(p,q):
     (x1,y1) = p
     (x2,y2) = q
     return abs(x1-x2) + abs(y1-y2)
-
 
 def conv_txt(txt):
     linhas=txt.split('\n')
@@ -47,7 +47,6 @@ def conv_txt(txt):
     dados["mapa"]=map_puzzle
     return dados
 
-
 class EstadoSokoban(dict):
     def __hash__(self):
         #print(self['caixas'])
@@ -60,7 +59,6 @@ class EstadoSokoban(dict):
         """Um estado é sempre menor do que qualquer outro, para desempate na fila de prioridades"""
         return True
 
-
 linha1= "  #####\n"
 linha2= "###...#\n"
 linha3= "#o@$..#\n"
@@ -72,10 +70,8 @@ linha8= "#......#\n"
 linha9= "########\n"
 mundoStandard=linha1+linha2+linha3+linha4+linha5+linha6+linha7+linha8+linha9
 
-
 class Sokoban(Problem):
     """O """
-
     dict_actions = {'N': (-1,0), 'W': (0,-1), 'E': (0,1), 'S': (1,0)}
 
     def __init__(self, initial=None,goal=None,situacaoInicial=mundoStandard):
@@ -108,7 +104,6 @@ class Sokoban(Problem):
             l2,c2=l1+dl,c1+dc
             #print('nextnext:',(l2,c2),'In caixas?',(l2,c2) in caixas,'In navegáveis?',(l2,c2) in self.navegaveis)
             return (l2,c2) in self.navegaveis and (l2,c2) not in self.proibidas and (l2,c2) not in caixas
-
 
     def its_a_trap(self,cel):
         viz=[]
@@ -272,82 +267,61 @@ class Sokoban(Problem):
 
 ############################ Algoritmo Beam Search ################################
 
-# Podemos nos basear nesse algoritmo para fazer o beam_search_plus_count
-def best_first_graph_search_plus_count(problem, f):
-    f = memoize(f, 'f')
-    node = Node(problem.initial)
-    if problem.goal_test(node.state):
-        return node,0
-    frontier = PriorityQueue(min, f)
-    frontier.append(node)
-    explored = set()
-    visited_not_explored={node.state}
-    while frontier:
-        node = frontier.pop()
-        if problem.goal_test(node.state):
-            return node,len(explored)
-        explored.add(node.state)
-        visited_not_explored.remove(node.state)
-        for child in node.expand(problem):
-            if child.state not in explored:
-                if child.state not in visited_not_explored:
-                    frontier.append(child)
-                    visited_not_explored.add(child.state)
-                else:
-                    incumbent = frontier[child]
-                    if f(child) < f(incumbent):
-                        del frontier[incumbent]
-                        frontier.append(child)
-    return None, len(explored)
-
 def beam_search_plus_count(problem, W, f):
-    """Beam Search: search the nodes with the best W scores in each depth.
-    Return the solution and how many nodes were expanded."""
     f = memoize(f, 'f')
     node = Node(problem.initial)
     if problem.goal_test(node.state):
-        return node,0
-    frontier = PriorityQueue(min, f)
+        return node, 0
+    parents = PriorityQueue(min, f)
+    parents.append(node)
     children = PriorityQueue(min, f)
-    frontier.append(node)
     explored = set()
-    visited_not_explored={node.state}
-    visited_not_explored_children = set()
-    while len(frontier) > 0 or len(children) > 0: 
-        if (len(frontier) > 0):
-            node = frontier.pop()
+    parents_visited_not_explored = {node.state}
+    children_visited_not_explored = set()
+    while parents.__len__() > 0 or children.__len__() > 0:
+        # no caso de ja ter expandido todos os melhores nodes
+        if parents.__len__() == 0:
+            parents_visited_not_explored.clear()
+            children_visited_not_explored.clear()
+            iterations = min(W, children.__len__())
+            # inserir os W melhores filhos no conjunto dos pais
+            for _ in range(iterations):
+                node = children.pop()
+                parents_visited_not_explored.add(node.state)
+                parents.append(node)
+            # remover os filhos restantes
+            while children.__len__() > 0:
+                children.pop()
+        # no caso de ainda faltarem nodes a serem expandidos
+        else:
+            node = parents.pop()
             if problem.goal_test(node.state):
-                return node,len(explored)
+                return node, len(explored)
             explored.add(node.state)
-            visited_not_explored.remove(node.state)
+            parents_visited_not_explored.remove(node.state)
+            # analisar cada filho do node que estamos a expandir
             for child in node.expand(problem):
                 if child.state not in explored:
-                    if child.state not in visited_not_explored and child.state not in visited_not_explored_children:
+                    # no caso do node estar "limpo"
+                    if child.state not in parents_visited_not_explored and child.state not in children_visited_not_explored:
                         children.append(child)
-                        visited_not_explored_children.add(child.state)
-                    elif child.state in visited_not_explored:
-                        incumbent = frontier[child]
+                        children_visited_not_explored.add(child.state)
+                    # escolhemos o melhor caminho no caso do estado do filho ja estar
+                    # presente no conjunto dos pais (mas ainda nao expandido)
+                    elif child.state in parents_visited_not_explored:
+                        incumbent = parents[child]
                         if f(child) < f(incumbent):
-                            del frontier[incumbent]
-                            visited_not_explored.remove(child.state)
-                            visited_not_explored_children.add(child.state)
+                            del parents[incumbent]
+                            parents_visited_not_explored.remove(child.state)
                             children.append(child)
-                    elif child.state in visited_not_explored_children:
+                            children_visited_not_explored.add(child.state)
+                    # escolhemos o melhor caminho no caso do estado do filho
+                    # ja estar no conjunto dos filhos (na mesmo profundidade)
+                    elif child.state in children_visited_not_explored:
                         incumbent = children[child]
                         if f(child) < f(incumbent):
                             del children[incumbent]
                             children.append(child)
-        else:
-            visited_not_explored.clear()
-            visited_not_explored_children.clear()
-            for _ in range(min(W,len(children))):
-                c = children.pop()
-                frontier.append(c)
-                visited_not_explored.add(c.state)
-
-            while len(children) > 0:
-                children.pop()
-      
     return None, len(explored)
 
 def beam_search(problem, W, h=None):
@@ -359,90 +333,11 @@ def beam_search(problem, W, h=None):
 
 
 def IW_beam_search(problem, h):
-    """IW_beam_search (Iterative Widening Beam Search) começa com beam width W=1 e aumenta W iterativamente até
-    se obter uma solução. Devolve a solução, o W com que se encontrou a solução, e o número total (acumulado desde W=1)
-    de nós expandidos. Assume-se que existe uma solução."""
-    W = 1
-    total_nodes = 0
+    w = 1
+    total_exp = 0
     while True:
-        solution, nodes_number = beam_search(problem, W, h)
-        total_nodes += nodes_number
-        if solution:
-            return solution, W, total_nodes
-        W += 1
-
-p=ProblemaGrafoHs()
-res, exp = beam_search(p,2,p.h1)
-if res==None:
-    print('Nope')
-else:
-    print(res.path_cost)
-
-print('-----------------')
-
-p=ProblemaGrafoHs()
-res, exp = beam_search(p,2,p.h1)
-if res==None:
-    print('Nope')
-else:
-    print(exp)
-
-print('-----------------')
-
-p=ProblemaGrafoHs()
-res, exp = beam_search(p,2,p.h1)
-if res==None:
-    print('Nope')
-else:
-    print(res.solution())
-
-print('-----------------')
-
-p=ProblemaGrafoHs()
-res, W, exp = IW_beam_search(p,p.h2)
-if res==None:
-    print('Nope')
-else:
-    print(W)
-
-print('-----------------')
-
-linha1="##########\n"
-linha2="#........#\n"
-linha3="#..$..+..#\n"
-linha4="#........#\n"
-linha5="##########\n"
-mundoS=linha1+linha2+linha3+linha4+linha5
-s=Sokoban(situacaoInicial=mundoS)
-res, exp = beam_search(s,1,s.h_inutil_1)
-if res:
-    print(res.solution())
-else:
-    print('No solution!')
-
-print('-----------------')
-
-linha1="##########\n"
-linha2="#........#\n"
-linha3="#..$..+..#\n"
-linha4="#........#\n"
-linha5="##########\n"
-mundoS=linha1+linha2+linha3+linha4+linha5
-s=Sokoban(situacaoInicial=mundoS)
-res, exp = beam_search(s,3,s.h_inutil_2)
-if res:
-    print(res.solution())
-else:
-    print('No solution!')
-
-print('-----------------')
-
-linha1="##########\n"
-linha2="#........#\n"
-linha3="#..$..+..#\n"
-linha4="#........#\n"
-linha5="##########\n"
-mundoS=linha1+linha2+linha3+linha4+linha5
-s=Sokoban(situacaoInicial=mundoS)
-res, W, exp = IW_beam_search(s,s.h_inutil_2)
-print('Expandidos:',exp)
+        result, n_exp = beam_search(problem, w, h)
+        total_exp += n_exp
+        if result is not None:
+            return result, w, total_exp
+        w += 1
