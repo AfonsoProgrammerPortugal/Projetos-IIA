@@ -149,9 +149,12 @@ class EstadoTicTacChess(stateTicTacChess):
             new_diagonal_loc1 = (loc[0]-self.pawn_direction[0],loc[1]+1)
             new_diagonal_loc2 = (loc[0]-self.pawn_direction[0],loc[1]-1)
         else:
-            new_straight_loc = (loc[0]+self.pawn_direction[0],loc[1])
-            new_diagonal_loc1 = (loc[0]+self.pawn_direction[0],loc[1]+1)
-            new_diagonal_loc2 = (loc[0]+self.pawn_direction[0],loc[1]-1)           
+            #new_straight_loc = (loc[0]+self.pawn_direction[0],loc[1])
+            #new_diagonal_loc1 = (loc[0]+self.pawn_direction[0],loc[1]+1)
+            #new_diagonal_loc2 = (loc[0]+self.pawn_direction[0],loc[1]-1)           
+            new_straight_loc = (loc[0]+self.pawn_direction[1],loc[1])
+            new_diagonal_loc1 = (loc[0]+self.pawn_direction[1],loc[1]+1)
+            new_diagonal_loc2 = (loc[0]+self.pawn_direction[1],loc[1]-1)         
         movements = []
         if new_straight_loc not in self.board.values(): # pawn can only move if no one is blocking it
             movements.append(new_straight_loc)
