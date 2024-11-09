@@ -1,13 +1,14 @@
 from tictacchess import *
 from utils import *
 from jogos import *
+from multiprocessing import Process
 import copy
 
 ##############################################################################################################
 # Conjunto de funções de avaliação dadas no enunciado do projeto
 ##############################################################################################################
 # Variável global que define a profundidade de pesquisa
-p=1
+p=3
 
 # Função que verifica se o jogo terminou e 
 # devolve o valor de infinity se o jogador ganhou,
@@ -197,11 +198,11 @@ def play_bishop_center(estado,jogador):
 # Função que joga a torre num dos cantos do tabuleiro
 def play_rook_corner(estado,jogador):
     piece = "T" if jogador == "WHITE" else "t"
-    center_positions = [(0,0),(0,3),(3,0),(3,3)]
+    corner_positions = [(0,0),(0,3),(3,0),(3,3)]
     positions,pieces = estado.player_used_cells(jogador)
 
     for i in range(len(positions)):
-        if positions[i] in center_positions and pieces[i] == piece:
+        if positions[i] in corner_positions and pieces[i] == piece:
             return 1
 
     return 0
@@ -216,30 +217,14 @@ def func_opening_moves(estado,jogador):
 
     # Verifica se é a primeira jogada
     if clone.n_jogadas == 1 or clone.n_jogadas == 2:
-        play_knight_center(clone,jogador)
+        return play_knight_center(clone,jogador)
     elif clone.n_jogadas == 3 or clone.n_jogadas == 4:
-        play_bishop_center(clone,jogador)
+        return play_bishop_center(clone,jogador)
     elif clone.n_jogadas == 5 or clone.n_jogadas == 6:
-        play_rook_corner(clone,jogador)
+        return play_rook_corner(clone,jogador)
     else:
         return 0
 
-# Função de ataque: 
-# Verifica se o adversário tem 2 ou 3 peças
-# na mesma linha, coluna ou diagonal
-# e tem uma peça livre que possa ser jogada
-# para atacar essas peças
-# devolve 1 se tiver, 0 se não tiver
-def func_attack_priority(estado,jogador):
-    if func_objective_opportunity(estado,estado.other()) == 1:
-        pieces_P1 = estado.player_used_pieces(jogador)
-        positions_P2,pieces_P2 = estado.player_used_cells(estado.other())
-
-        for i in range(len(pieces_P1)):
-            can_move = estado.possible_moves(pieces_P1[i])
-            if positions_P2[i] in can_move:
-                return 1
-    return 0
 
 # Função de defesa:
 # Verifica se o adversário tem alguma peça que possa
@@ -276,10 +261,8 @@ def winning_move(estado,jogador):
         possible_win = estado.next_state((pieces[i],positions[i]))
 
         # Verifica se o jogador aumenta a sua linha
-        if estado.n_in_row(2) == jogador and possible_win.n_in_row(3) == jogador:
-            return 1
-
-        elif estado.n_in_row(3) == jogador and possible_win.n_in_row(4) == jogador:
+        if (estado.n_in_row(2) == jogador and possible_win.n_in_row(3) == jogador) or \
+            (estado.n_in_row(3) == jogador and possible_win.n_in_row(4) == jogador):
             return 1
         
     return 0
@@ -297,15 +280,36 @@ def func_objective_opportunity(estado,jogador):
 
     # Verifica se o jogador tem 2 na mesma linha
     # e se tem uma peça livre que possa ser jogada
-    if clone.n_in_row(2) == jogador and clone.used_pieces[jogador] > 2 and winning_move(estado,jogador):
+    if clone.n_in_row(2) == jogador and \
+        len(clone.player_used_pieces(jogador)) > 2 and \
+        winning_move(estado,jogador) == 1:
         return 1
     # Verifica se o jogador tem 3 na mesma linha
     # e se tem uma peça livre que possa ser jogada
-    elif clone.n_in_row(3) == jogador and clone.used_pieces[jogador] > 3 and winning_move(estado,jogador):
+    elif clone.n_in_row(3) == jogador and \
+        len(clone.player_used_pieces(jogador)) > 3 and \
+        winning_move(estado,jogador) == 1:
         return 1
     # Caso não tenha 2 ou 3 na mesma linha
     else:
         return 0
+
+# Função de ataque: 
+# Verifica se o adversário tem 2 ou 3 peças
+# na mesma linha, coluna ou diagonal
+# e tem uma peça livre que possa ser jogada
+# para atacar essas peças
+# devolve 1 se tiver, 0 se não tiver
+def func_attack_priority(estado,jogador):
+    if func_objective_opportunity(estado,estado.other()) == 1:
+        pieces_P1 = estado.player_used_pieces(jogador)
+        positions_P2,pieces_P2 = estado.player_used_cells(estado.other())
+
+        for i in range(len(pieces_P1)):
+            can_move = estado.possible_moves(pieces_P1[i])
+            if positions_P2[i] in can_move:
+                return 1
+    return 0
 
 # Função com os pesos e funções de avaliação do jogador criado por mim
 def func_afonso(estado,jogador):
@@ -320,11 +324,12 @@ def func_afonso(estado,jogador):
         my_functions = [
             func_attack_priority,
             func_defense_priority,
-            func_objective_opportunity
+            func_objective_opportunity,
+            func_tactic
         ]
-        my_weights = [10,1,50]
+        my_weights = [10,1,50,100]
 
-        return func_combina_com_pesos(estado,jogador,my_weights,my_functions)
+        return func_combina_com_pesos(clone,jogador,my_weights,my_functions)
 
 
 # Função com o jogador criado por mim
@@ -335,15 +340,29 @@ def my_player(game, state) :
 # Testes
 ##############################################################################################################
 
-jogo=TicTacChess()
+jogo = TicTacChess()
+num_jogos = 50  # Total de jogos
+num_processos = 5  # Número de processos
+jogos_por_processo = num_jogos // num_processos  # Jogos que cada processo executará
 
-pontuacao=0
-for i in range(100):
-    resultado = jogo.jogar(my_player,jogador_tactic_p,verbose=False)
-    print(resultado, end = "")
-    pontuacao = pontuacao + (1 if resultado == 1 else 0)
-print()
-print(pontuacao)
+# Função para cada processo
+def executar_jogos():
+    resultado_texto = ""
+    for _ in range(jogos_por_processo):
+        resultado = jogo.jogar(my_player, jogador_tactic_e_pecas, verbose=False)
+        # Acumula o resultado em uma string
+        resultado_texto += "+" if resultado == 1 else ("-" if resultado == -1 else "|")
+    # Imprime tudo de uma vez no final do processo
+    print(resultado_texto, end="")
 
-# print(jogo.jogar(my_player, jogador_tactic_e_pecas, verbose=False))
+# Criando e iniciando os processos
+processos = []
+for _ in range(num_processos):
+    processo = Process(target=executar_jogos)
+    processos.append(processo)
+    processo.start()
+
+# Aguardando que todos os processos terminem
+for processo in processos:
+    processo.join()
 
