@@ -1,11 +1,13 @@
 from tictacchess import *
 from utils import *
 from jogos import *
-from copy import *
+import copy
 
 ##############################################################################################################
 # Conjunto de funções de avaliação dadas no enunciado do projeto
 ##############################################################################################################
+# Variável global que define a profundidade de pesquisa
+p=1
 
 # Função que verifica se o jogo terminou e 
 # devolve o valor de infinity se o jogador ganhou,
@@ -76,8 +78,8 @@ def jogador_tactic_e_pecas_3(jogo,estado) :
 def jogador_tactic_3(jogo,estado) :
     return alphabeta_cutoff_search_new(estado,jogo,3,eval_fn=func_tactic)
 
-jogo=TicTacChess()
-jogo.jogar(query_player,jogador_tactic_3) # descomentar para jogar
+'''jogo=TicTacChess()
+jogo.jogar(query_player,jogador_tactic_3) # descomentar para jogar'''
 
 # Função que combina várias funções de avaliação
 # com base nos pesos dados
@@ -170,17 +172,38 @@ def torneio(n,jogadores):
 
 # Função que joga o cavalo no centro do tabuleiro
 def play_knight_center(estado,jogador):
-    #TODO: implementar
+    piece = "C" if jogador == "WHITE" else "c"
+    center_positions = [(1,1),(1,2),(2,1),(2,2)]
+    positions,pieces = estado.player_used_cells(jogador)
+
+    for i in range(len(positions)):
+        if positions[i] in center_positions and pieces[i] == piece:
+            return 1
+    
     return 0
 
 # Função que joga o bispo na diagonal oposta ao cavalo
-def play_bishop_opposite_diagonal(estado,jogador):
-    #TODO: implementar
+def play_bishop_center(estado,jogador):
+    piece = "B" if jogador == "WHITE" else "b"
+    center_positions = [(1,1),(1,2),(2,1),(2,2)]
+    positions,pieces = estado.player_used_cells(jogador)
+
+    for i in range(len(positions)):
+        if positions[i] in center_positions and pieces[i] == piece:
+            return 1
+
     return 0
 
 # Função que joga a torre num dos cantos do tabuleiro
 def play_rook_corner(estado,jogador):
-    #TODO: implementar
+    piece = "T" if jogador == "WHITE" else "t"
+    center_positions = [(0,0),(0,3),(3,0),(3,3)]
+    positions,pieces = estado.player_used_cells(jogador)
+
+    for i in range(len(positions)):
+        if positions[i] in center_positions and pieces[i] == piece:
+            return 1
+
     return 0
 
 # Funcão que segue a seguinte estratégia nos primeiros 3 movimentos:
@@ -195,27 +218,72 @@ def func_opening_moves(estado,jogador):
     if clone.n_jogadas == 1 or clone.n_jogadas == 2:
         play_knight_center(clone,jogador)
     elif clone.n_jogadas == 3 or clone.n_jogadas == 4:
-        play_bishop_opposite_diagonal(clone,jogador)
+        play_bishop_center(clone,jogador)
     elif clone.n_jogadas == 5 or clone.n_jogadas == 6:
         play_rook_corner(clone,jogador)
+    else:
+        return 0
 
 # Função de ataque: 
 # Verifica se o adversário tem 2 ou 3 peças
 # na mesma linha, coluna ou diagonal
 # e tem uma peça livre que possa ser jogada
 # para atacar essas peças
-# devolve -1 se tiver, 0 se não tiver
+# devolve 1 se tiver, 0 se não tiver
 def func_attack_priority(estado,jogador):
-    #TODO: implementar
+    if func_objective_opportunity(estado,estado.other()) == 1:
+        pieces_P1 = estado.player_used_pieces(jogador)
+        positions_P2,pieces_P2 = estado.player_used_cells(estado.other())
+
+        for i in range(len(pieces_P1)):
+            can_move = estado.possible_moves(pieces_P1[i])
+            if positions_P2[i] in can_move:
+                return 1
     return 0
 
 # Função de defesa:
 # Verifica se o adversário tem alguma peça que possa
-# atacar 2 peças do jogador ou mais
-# devolve -1 se tiver, 0 se não tiver
+# atacar 3 peças do jogador ou mais
+# devolve 1 se tiver, 0 se não tiver
 def func_defense_priority(estado,jogador):
-    #TODO: implementar
+    # Copia o estado para não o alterar
+    clone=copy.deepcopy(estado)
+
+    pieces_P1 = clone.player_used_pieces(jogador)
+    pieces_P2 = clone.player_used_pieces(estado.other())
+
+    for i in range(len(pieces_P2)):
+        count = 0
+        can_move = clone.possible_moves(pieces_P2[i])
+        for j in range(len(pieces_P1)):
+            if pieces_P1[j] in can_move:
+                count += 1
+        if count > 2:
+            return 1
+        
     return 0
+
+# Função que verifica se o jogador tem uma jogada
+# que lhe permita ganhar ou quase ganhar o jogo
+# devolve 1 se tiver, 0 se não tiver
+def winning_move(estado,jogador):
+    # Copia o estado para não o alterar
+    clone=copy.deepcopy(estado)
+
+    positions,pieces = estado.player_used_cells(jogador)
+
+    for i in range(len(pieces)):
+        possible_win = estado.next_state((pieces[i],positions[i]))
+
+        # Verifica se o jogador aumenta a sua linha
+        if estado.n_in_row(2) == jogador and possible_win.n_in_row(3) == jogador:
+            return 1
+
+        elif estado.n_in_row(3) == jogador and possible_win.n_in_row(4) == jogador:
+            return 1
+        
+    return 0
+
 
 # Funcão de objetivo:
 # verifica se o jogador tem 2 ou 3 peças
@@ -228,12 +296,12 @@ def func_objective_opportunity(estado,jogador):
     clone=copy.deepcopy(estado)
 
     # Verifica se o jogador tem 2 na mesma linha
-    # falta verificar se tem uma peça livre que possa ser jogada
-    if clone.n_in_row(2) == jogador and clone.used_pieces[jogador] > 2:
+    # e se tem uma peça livre que possa ser jogada
+    if clone.n_in_row(2) == jogador and clone.used_pieces[jogador] > 2 and winning_move(estado,jogador):
         return 1
     # Verifica se o jogador tem 3 na mesma linha
-    # falta verificar se tem uma peça livre que possa ser jogada
-    elif clone.n_in_row(3) == jogador and clone.used_pieces[jogador] > 3:
+    # e se tem uma peça livre que possa ser jogada
+    elif clone.n_in_row(3) == jogador and clone.used_pieces[jogador] > 3 and winning_move(estado,jogador):
         return 1
     # Caso não tenha 2 ou 3 na mesma linha
     else:
@@ -244,27 +312,24 @@ def func_afonso(estado,jogador):
     # copia o estado para não o alterar
     clone=copy.deepcopy(estado) 
 
-    # verifica se o jogo terminou
-    if (func_gameover(clone,jogador) == 0):
-        # Caso seja o inicio do jogo
-        if clone.n_jogadas <= 6:
-            return func_opening_moves(clone,jogador)
-        # Caso seja o meio do jogo
-        else:
-            my_functions = [
-                func_attack_priority,
-                func_defense_priority,
-                func_objective_opportunity
-            ]
-            my_weights = [5,1,50]
+    # Caso seja o inicio do jogo
+    if clone.n_jogadas <= 6:
+        return func_opening_moves(clone,jogador)
+    # Caso seja o meio do jogo
+    else:
+        my_functions = [
+            func_attack_priority,
+            func_defense_priority,
+            func_objective_opportunity
+        ]
+        my_weights = [10,1,50]
 
-            return func_combina_com_pesos(estado,jogador,my_weights,my_functions)
-        
-    return func_gameover(clone,jogador)
+        return func_combina_com_pesos(estado,jogador,my_weights,my_functions)
+
 
 # Função com o jogador criado por mim
 def my_player(game, state) :
-    return alphabeta_cutoff_search_new(state, game,1,eval_fn=func_afonso)
+    return alphabeta_cutoff_search_new(state, game,p,eval_fn=func_afonso)
 
 ##############################################################################################################
 # Testes
