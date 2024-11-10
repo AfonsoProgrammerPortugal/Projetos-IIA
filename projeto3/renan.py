@@ -79,21 +79,164 @@ def adversary_pawn_on_board(state, player):
 
 def check_3_in_row_no_pawn(state, player): return 1 if (check_3_in_row(state, player) == 1 and pawn_on_board(state, player) == -1) else 0
 
+def check_3_in_row_3_pieces(state, player):
+    clone = copy.deepcopy(state)
+    return 1 if (check_3_in_row(state, player) == 1 and len(clone.player_used_pieces(player)) == 3) else 0
+
+def two_can_become_three_in_row(state, player):
+    clone = copy.deepcopy(state)
+
+    if check_2_in_row(state, player) == 1 and clone.n_jogadas >= 6:
+        used_pieces = clone.player_used_pieces(player)
+        for piece in used_pieces:
+            moves = clone.possible_moves(piece)
+            for move in moves:
+                if clone.next_state(move).n_in_row(3) == player:
+                    return True
+    return False
+
+def can_win_next_move(state, player):
+    clone = copy.deepcopy(state)
+
+    if check_3_in_row(state, player) == 1 and clone.n_jogadas >= 6:
+        used_pieces = clone.player_used_pieces(player)
+        for piece in used_pieces:
+            moves = clone.possible_moves(piece)
+            for move in moves:
+                if clone.next_state(move).have_winner() == player:
+                    return True
+    return False
+
+def adversary_can_win_next_move(state, _):
+    return can_win_next_move(state, state.other())
+
+def can_stop_adversary_win(state, player):
+    clone = copy.deepcopy(state)
+
+    if (adversary_can_win_next_move(state, player) > 0) and ((clone.n_capturas[0] if player == 'WHITE' else clone.n_capturas[1]) < 3) and (clone.n_jogadas >= 6):
+        used_pieces = clone.player_used_pieces(player)
+        for piece in used_pieces:
+            moves = clone.possible_moves(piece)
+            for move in moves:
+                if clone.next_state(move).n_in_row(2) == clone.other():
+                    return True
+    return False
+
+def adversary_can_stop_our_win(state, _):
+    return can_stop_adversary_win(state, state.other())
+
+def can_win_and_adversary_cant_stop(state, player):
+    return can_win_next_move(state, player) and adversary_can_stop_our_win(state, player)
+
+def adversary_can_win_and_we_cant_stop(state, _):
+    return can_win_and_adversary_cant_stop(state, state.other())
+
+def can_attack(state, player):
+    clone = copy.deepcopy(state)
+    if ((clone.n_capturas[0] if player == 'WHITE' else clone.n_capturas[1]) < 3) and (clone.n_jogadas >= 6):
+        used_pieces = clone.player_used_pieces(player)
+        adversary_positions, _ = clone.player_used_cells(clone.other())
+        counter = 0
+        for piece in used_pieces:
+            moves = clone.possible_moves(piece)
+            for move in moves:
+                if move in adversary_positions:
+                    counter += 1
+        return counter
+    else:
+        return 0
+
+def can_be_attacked(state, _):
+    return can_attack(state, state.other())
+
+def start_with_knight_center(state, player):
+    clone = copy.deepcopy(state)
+
+    if clone.n_jogadas <= 6:
+        knight = 'C' if player == 'WHITE' else 'c'
+        pos, pieces = clone.player_used_cells(player)
+
+        if knight in pieces:
+            knight_pos = 0
+            for x in range(len(pieces)):
+                if pieces[x] == knight:
+                    knight_pos = x
+                    break
+            row, col = pos[knight_pos]
+            return 1 if (1 <= row <= 2 and 1 <= col <= 2) else -1
+        else:
+            return -1
+    else:
+        return 0
+
+def start_aligning(state, player):
+    clone = copy.deepcopy(state)
+    if 4 <= clone.n_jogadas <= 6:
+        used_pieces = clone.player_used_pieces(player)
+
+        if (len(used_pieces) == 2 and clone.n_in_row(2) == player) or \
+           (len(used_pieces) == 3 and clone.n_in_row(3) == player):
+            return 1
+        else:
+            return -1
+    else:
+        return 0
+
+def in_row_hierarchy(state, player):
+    res = check_if_winner(state, player)
+    if res != 0:
+        return res
+
+    res1 = can_win_and_adversary_cant_stop(state, player)
+    res2 = adversary_can_win_and_we_cant_stop(state, player)
+    if res1 and not res2:
+        return 10
+    if not res1 and res2:
+        return -10
+
+    res1 = can_win_next_move(state, player)
+    res2 = adversary_can_win_next_move(state, player)
+    if res1 and not res2:
+        return 5
+    if not res1 and res2:
+        return -5
+
+    res = check_3_in_row(state, player)
+    if res != 0:
+        return res * 2
+
+    res = two_can_become_three_in_row(state, player)
+    if res:
+        return 1
+
+    return 0
+
 my_combinations = [
-    (check_if_winner, 1),
-    (check_3_in_row, 10),
-    (check_3_in_row_no_pawn, 100),
-    (check_2_in_row, 1),
-    (num_pieces_differential, 2),
-    (n_valid_knight_options, -1),
-    (n_valid_bishop_options, -1),
-    (n_valid_rook_options, -1),
-    (n_valid_pawn_options, -1),
-    (knight_on_board, 2),
-    (bishop_on_board, 2),
-    (rook_on_board, 3),
-    (pawn_on_board, -1),
-    (adversary_pawn_on_board, 10)
+    # (check_if_winner, 1),
+    # (check_3_in_row, 1),
+    # (check_3_in_row_no_pawn, 3),
+    # (check_2_in_row, 1),
+    # (num_pieces_differential, 0),
+    # (n_valid_knight_options, 0.5),
+    # (n_valid_bishop_options, 0.5),
+    # (n_valid_rook_options, 0.5),
+    # (n_valid_pawn_options, 0.5),
+    # (knight_on_board, 0),
+    # (bishop_on_board, 0),
+    # (rook_on_board, 0),
+    # (pawn_on_board, -3),
+    # (adversary_pawn_on_board, 3),
+    # (check_3_in_row_3_pieces, 2),
+    # (can_win_next_move, 10)
+    # (adversary_can_win_next_move, -1),
+    # (can_stop_adversary_win, 1),
+    # (adversary_can_stop_our_win, -1),
+    # (can_win_and_adversary_cant_stop, 1),
+    # (can_attack, 1),
+    # (can_be_attacked, -1),
+    (start_with_knight_center, 1),
+    (start_aligning, 10),
+    (in_row_hierarchy, 1)
 ]
 
 my_functions, my_weights = zip(*my_combinations)
@@ -129,8 +272,7 @@ def func_tactic_e_pecas(estado,jogador):
 def jogador_tactic_e_pecas(jogo,estado) :
     return alphabeta_cutoff_search_new(estado,jogo,3,eval_fn=func_tactic_e_pecas)
 
-
-
+########################################################################################################################
 
 jogo = TicTacChess()
 num_jogos = 100  # Total de jogos
