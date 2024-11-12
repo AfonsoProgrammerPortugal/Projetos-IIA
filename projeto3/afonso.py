@@ -1,7 +1,7 @@
 from tictacchess import *
 from utils import *
 from jogos import *
-from renan import *
+# from renan import *
 from multiprocessing import Process, Manager
 import copy
 
@@ -235,14 +235,16 @@ def func_defense_priority(estado,jogador):
     # Copia o estado para não o alterar
     clone=copy.deepcopy(estado)
 
-    pieces_P1 = clone.player_used_pieces(jogador)
+    positions_P1, pieces_P1 = clone.player_used_cells(jogador)
     pieces_P2 = clone.player_used_pieces(estado.other())
 
-    for i in range(len(pieces_P2)):
+    for piece_P2 in pieces_P2:
         count = 0
-        can_move = clone.possible_moves(pieces_P2[i])
-        for j in range(len(pieces_P1)):
-            if pieces_P1[j] in can_move:
+        can_move = list(map(lambda x: x[1], clone.possible_moves(piece_P2)))
+        # print(can_move)
+        for pos in positions_P1:
+            if pos in can_move:
+                # print(123)
                 count += 1
         if count > 2:
             return 1
@@ -342,39 +344,40 @@ def my_player2(game, state) :
 ##############################################################################################################
 
 jogo = TicTacChess()
-num_jogos = 100  # Total de jogos
-num_processos = 10  # Número de processos
-jogos_por_processo = num_jogos // num_processos  # Jogos que cada processo executará
-
-# Função que cada processo executará
-def executar_jogos(resultados_compartilhados, indice):
-    vitorias = 0
-    for _ in range(jogos_por_processo):
-        resultado = jogo.jogar(my_player2, jogador_random_plus_p, verbose=False)
-        print(resultado, end='')
-        if resultado == 1:  # Se for uma vitória
-            vitorias += 1
-    # Armazena o total de vitórias deste processo na lista compartilhada
-    resultados_compartilhados[indice] = vitorias
-
-# Usando Manager para criar uma lista compartilhada
-with Manager() as manager:
-    resultados_compartilhados = manager.list([0] * num_processos)  # Lista com um espaço para cada processo
-
-    # Criando e iniciando os processos
-    processos = []
-    for i in range(num_processos):
-        processo = Process(target=executar_jogos, args=(resultados_compartilhados, i))
-        processos.append(processo)
-        processo.start()
-
-    # Aguardando que todos os processos terminem
-    for processo in processos:
-        processo.join()
-
-    # Calculando a soma total das vitórias
-    pontuacao_total = sum(resultados_compartilhados)
-
-print()
-print("Pontuação final:", pontuacao_total)
+print(jogo.jogar(my_player2, jogador_random_plus_p, verbose=False))
+# num_jogos = 100  # Total de jogos
+# num_processos = 10  # Número de processos
+# jogos_por_processo = num_jogos // num_processos  # Jogos que cada processo executará
+#
+# # Função que cada processo executará
+# def executar_jogos(resultados_compartilhados, indice):
+#     vitorias = 0
+#     for _ in range(jogos_por_processo):
+#         resultado = jogo.jogar(my_player2, jogador_random_plus_p, verbose=False)
+#         print(resultado, end='')
+#         if resultado == 1:  # Se for uma vitória
+#             vitorias += 1
+#     # Armazena o total de vitórias deste processo na lista compartilhada
+#     resultados_compartilhados[indice] = vitorias
+#
+# # Usando Manager para criar uma lista compartilhada
+# with Manager() as manager:
+#     resultados_compartilhados = manager.list([0] * num_processos)  # Lista com um espaço para cada processo
+#
+#     # Criando e iniciando os processos
+#     processos = []
+#     for i in range(num_processos):
+#         processo = Process(target=executar_jogos, args=(resultados_compartilhados, i))
+#         processos.append(processo)
+#         processo.start()
+#
+#     # Aguardando que todos os processos terminem
+#     for processo in processos:
+#         processo.join()
+#
+#     # Calculando a soma total das vitórias
+#     pontuacao_total = sum(resultados_compartilhados)
+#
+# print()
+# print("Pontuação final:", pontuacao_total)
 
