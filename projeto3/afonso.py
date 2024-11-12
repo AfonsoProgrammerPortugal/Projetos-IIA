@@ -257,16 +257,16 @@ def func_defense_priority(estado,jogador):
 def winning_move(estado,jogador):
     # Copia o estado para não o alterar
     clone=copy.deepcopy(estado)
+    positions,pieces = clone.player_used_cells(jogador)
 
-    positions,pieces = estado.player_used_cells(jogador)
-
-    for i in range(len(pieces)):
-        possible_win = estado.next_state((pieces[i],positions[i]))
-
-        # Verifica se o jogador aumenta a sua linha
-        if (estado.n_in_row(2) == jogador and possible_win.n_in_row(3) == jogador) or \
-            (estado.n_in_row(3) == jogador and possible_win.n_in_row(4) == jogador):
-            return 1
+    for piece in pieces:
+        moves = estado.possible_moves(piece)
+        for move in moves:
+            possible_win = clone.next_state(move)
+            # Verifica se o jogador aumenta a sua linha
+            if (clone.n_in_row(2) == jogador and possible_win.n_in_row(3) == jogador) or \
+               (clone.n_in_row(3) == jogador and possible_win.n_in_row(4) == jogador):
+                return 1
         
     return 0
 
@@ -292,10 +292,13 @@ def func_objective_opportunity(estado,jogador):
     elif clone.n_in_row(3) == jogador and \
         len(clone.player_used_pieces(jogador)) > 3 and \
         winning_move(estado,jogador) == 1:
-        return 1
+        return infinity
     # Caso não tenha 2 ou 3 na mesma linha
     else:
         return 0
+
+def func_objective_opportunity_other(estado,jogador):
+    return -func_objective_opportunity(estado, estado.other())
 
 # Função de ataque: 
 # Verifica se o adversário tem 2 ou 3 peças
@@ -304,14 +307,17 @@ def func_objective_opportunity(estado,jogador):
 # para atacar essas peças
 # devolve 1 se tiver, 0 se não tiver
 def func_attack_priority(estado,jogador):
-    if func_objective_opportunity(estado,estado.other()) == 1:
-        pieces_P1 = estado.player_used_pieces(jogador)
-        positions_P2,pieces_P2 = estado.player_used_cells(estado.other())
+    clone = copy.deepcopy(estado)
 
-        for i in range(len(pieces_P1)):
-            can_move = estado.possible_moves(pieces_P1[i])
-            if positions_P2[i] in can_move:
-                return 1
+    if func_objective_opportunity(clone,clone.other()) == 1:
+        pieces_P1 = clone.player_used_pieces(jogador)
+        positions_P2,pieces_P2 = clone.player_used_cells(clone.other())
+
+        for piece_P1 in pieces_P1:
+            can_move = list(map(lambda x: x[1], clone.possible_moves(piece_P1)))
+            for pos in positions_P2:
+                if pos in can_move:
+                    return 1
     return 0
 
 # Função com os pesos e funções de avaliação do jogador criado por mim
@@ -328,9 +334,10 @@ def func_afonso(estado,jogador):
             func_attack_priority,
             func_defense_priority,
             func_objective_opportunity,
+            func_objective_opportunity_other,
             func_tactic
         ]
-        my_weights = [100,1,50,50]
+        my_weights = [100,25,50,50,50]
 
         return func_combina_com_pesos(clone,jogador,my_weights,my_functions)
 
@@ -344,40 +351,40 @@ def my_player2(game, state) :
 ##############################################################################################################
 
 jogo = TicTacChess()
-print(jogo.jogar(my_player2, jogador_random_plus_p, verbose=False))
-# num_jogos = 100  # Total de jogos
-# num_processos = 10  # Número de processos
-# jogos_por_processo = num_jogos // num_processos  # Jogos que cada processo executará
-#
-# # Função que cada processo executará
-# def executar_jogos(resultados_compartilhados, indice):
-#     vitorias = 0
-#     for _ in range(jogos_por_processo):
-#         resultado = jogo.jogar(my_player2, jogador_random_plus_p, verbose=False)
-#         print(resultado, end='')
-#         if resultado == 1:  # Se for uma vitória
-#             vitorias += 1
-#     # Armazena o total de vitórias deste processo na lista compartilhada
-#     resultados_compartilhados[indice] = vitorias
-#
-# # Usando Manager para criar uma lista compartilhada
-# with Manager() as manager:
-#     resultados_compartilhados = manager.list([0] * num_processos)  # Lista com um espaço para cada processo
-#
-#     # Criando e iniciando os processos
-#     processos = []
-#     for i in range(num_processos):
-#         processo = Process(target=executar_jogos, args=(resultados_compartilhados, i))
-#         processos.append(processo)
-#         processo.start()
-#
-#     # Aguardando que todos os processos terminem
-#     for processo in processos:
-#         processo.join()
-#
-#     # Calculando a soma total das vitórias
-#     pontuacao_total = sum(resultados_compartilhados)
-#
-# print()
-# print("Pontuação final:", pontuacao_total)
+# print(jogo.jogar(my_player2, jogador_random_plus_p, verbose=False))
+num_jogos = 100  # Total de jogos
+num_processos = 10  # Número de processos
+jogos_por_processo = num_jogos // num_processos  # Jogos que cada processo executará
+
+# Função que cada processo executará
+def executar_jogos(resultados_compartilhados, indice):
+    vitorias = 0
+    for _ in range(jogos_por_processo):
+        resultado = jogo.jogar(my_player2, jogador_random_plus_p, verbose=False)
+        print(resultado, end='')
+        if resultado == 1:  # Se for uma vitória
+            vitorias += 1
+    # Armazena o total de vitórias deste processo na lista compartilhada
+    resultados_compartilhados[indice] = vitorias
+
+# Usando Manager para criar uma lista compartilhada
+with Manager() as manager:
+    resultados_compartilhados = manager.list([0] * num_processos)  # Lista com um espaço para cada processo
+
+    # Criando e iniciando os processos
+    processos = []
+    for i in range(num_processos):
+        processo = Process(target=executar_jogos, args=(resultados_compartilhados, i))
+        processos.append(processo)
+        processo.start()
+
+    # Aguardando que todos os processos terminem
+    for processo in processos:
+        processo.join()
+
+    # Calculando a soma total das vitórias
+    pontuacao_total = sum(resultados_compartilhados)
+
+print()
+print("Pontuação final:", pontuacao_total)
 
