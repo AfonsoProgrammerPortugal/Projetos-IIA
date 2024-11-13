@@ -60,8 +60,8 @@ class EstadoTicTacChess(stateTicTacChess):
         """Execute action from self (state). Put piece in square replacing whatever was there (maybe nothing).
         If pawn entered board, movement is forward. If there was a capture, increment counter. Increment n_jogadas."""
         board = self.board.copy()
-        n_capturas = self.n_capturas
-        pawn_direction = self.pawn_direction
+        n_capturas = self.n_capturas.copy()
+        pawn_direction = self.pawn_direction.copy()
         piece, loc = action
         # se a peça é um peão, se está no final do tabuleiro inverte a direção:
         if piece == 'P' or piece == 'p':
@@ -154,7 +154,7 @@ class EstadoTicTacChess(stateTicTacChess):
             #new_diagonal_loc2 = (loc[0]+self.pawn_direction[0],loc[1]-1)           
             new_straight_loc = (loc[0]+self.pawn_direction[1],loc[1])
             new_diagonal_loc1 = (loc[0]+self.pawn_direction[1],loc[1]+1)
-            new_diagonal_loc2 = (loc[0]+self.pawn_direction[1],loc[1]-1)         
+            new_diagonal_loc2 = (loc[0]+self.pawn_direction[1],loc[1]-1)           
         movements = []
         if new_straight_loc not in self.board.values(): # pawn can only move if no one is blocking it
             movements.append(new_straight_loc)
@@ -268,7 +268,7 @@ class TicTacChess(Game):
                 piece_possible_movements = state.possible_moves(piece)
                 # if number of consecutive captures is 3, another capture is forbidden (which means no movements to used cells):
                 if (state.to_move == 'WHITE' and state.n_capturas[0] == 3) or (state.to_move == 'BLACK' and state.n_capturas[1] == 3):
-                    piece_possible_movements = [mov for mov in piece_possible_movements if mov not in state.board.values()]
+                    piece_possible_movements = [(piece,mov) for (piece,mov) in piece_possible_movements if mov not in state.board.values()]
                 list_actions.extend(piece_possible_movements)
         #print(list_actions)
         return list_actions
