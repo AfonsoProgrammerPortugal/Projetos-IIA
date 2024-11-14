@@ -226,29 +226,37 @@ def func_opening_moves(estado,jogador):
     else:
         return 0
 
+# Função que verifica se o adversário tem alguma peça que possa
+# atacar 3 peças do jogador ou mais
+def count_threats(estado, pieces, positions):
+    for piece in pieces:
+        count = 0
+        can_move = list(map(lambda x: x[1], estado.possible_moves(piece)))
+        for pos in positions:
+            if pos in can_move:
+                count += 1
+        if count > 2:
+            return True
+    return False
 
 # Função de defesa:
 # Verifica se o adversário tem alguma peça que possa
 # atacar 3 peças do jogador ou mais
 # devolve 1 se tiver, 0 se não tiver
-def func_defense_priority(estado,jogador):
+# ou -1 se o jogador pode atacar 3 peças do adversário
+def func_defense_priority(estado, jogador):
     # Copia o estado para não o alterar
-    clone=copy.deepcopy(estado)
+    clone = copy.deepcopy(estado)
 
-    positions_P1, pieces_P1 = clone.player_used_cells(jogador)
-    pieces_P2 = clone.player_used_pieces(estado.other())
+    positions_p1, pieces_p1 = clone.player_used_cells(jogador)
+    positions_p2, pieces_p2 = clone.player_used_pieces(estado.other())
 
-    for piece_P2 in pieces_P2:
-        count = 0
-        can_move = list(map(lambda x: x[1], clone.possible_moves(piece_P2)))
-        # print(can_move)
-        for pos in positions_P1:
-            if pos in can_move:
-                # print(123)
-                count += 1
-        if count > 2:
-            return 1
-        
+    if count_threats(clone, pieces_p2, positions_p1):
+        return 1
+
+    if count_threats(clone, pieces_p1, positions_p2):
+        return -1
+
     return 0
 
 # Função que verifica se o jogador tem uma jogada
@@ -257,7 +265,7 @@ def func_defense_priority(estado,jogador):
 def winning_move(estado,jogador):
     # Copia o estado para não o alterar
     clone=copy.deepcopy(estado)
-    positions,pieces = clone.player_used_cells(jogador)
+    _ ,pieces = clone.player_used_cells(jogador)
 
     for piece in pieces:
         moves = estado.possible_moves(piece)
@@ -297,27 +305,44 @@ def func_objective_opportunity(estado,jogador):
     else:
         return 0
 
-def func_objective_opportunity_other(estado,jogador):
+def func_objective_opportunity_other(estado):
     return -func_objective_opportunity(estado, estado.other())
+
+# Função que verifica se o jogador pode atacar
+def can_attack_positions(estado, pieces, positions):
+    for piece in pieces:
+        can_move = list(map(lambda x: x[1], estado.possible_moves(piece)))
+        for pos in positions:
+            if pos in can_move:
+                return True
+    return False
 
 # Função de ataque: 
 # Verifica se o adversário tem 2 ou 3 peças
 # na mesma linha, coluna ou diagonal
 # e tem uma peça livre que possa ser jogada
 # para atacar essas peças
-# devolve 1 se tiver, 0 se não tiver
-def func_attack_priority(estado,jogador):
+# devolve 1 se o adversário, 0 se não tiver
+# ou -1 se eu tiver 2 ou 3 peças 
+def func_attack_priority(estado, jogador):
     clone = copy.deepcopy(estado)
 
-    if func_objective_opportunity(clone,clone.other()) == 1:
-        pieces_P1 = clone.player_used_pieces(jogador)
-        positions_P2,pieces_P2 = clone.player_used_cells(clone.other())
+    # Verifica se o adversário tem 2 ou 3 na mesma linha
+    if func_objective_opportunity(clone, clone.other()) == 1:
+        pieces_p1 = clone.player_used_pieces(jogador)
+        positions_p2, _ = clone.player_used_cells(clone.other())
 
-        for piece_P1 in pieces_P1:
-            can_move = list(map(lambda x: x[1], clone.possible_moves(piece_P1)))
-            for pos in positions_P2:
-                if pos in can_move:
-                    return 1
+        # Verifica se o jogador pode atacar
+        if can_attack_positions(clone, pieces_p1, positions_p2):
+            return 1
+
+    elif func_objective_opportunity(clone, jogador) == 1:
+        pieces_p2 = clone.player_used_pieces(clone.other())
+        positions_p1, _ = clone.player_used_cells(jogador)
+
+        if can_attack_positions(clone, pieces_p2, positions_p1):
+            return -1
+
     return 0
 
 # Função com os pesos e funções de avaliação do jogador criado por mim
@@ -350,7 +375,7 @@ def my_player2(game, state) :
 # Testes
 ##############################################################################################################
 
-'''jogo = TicTacChess()
+jogo = TicTacChess()
 # print(jogo.jogar(my_player2, jogador_random_plus_p, verbose=False))
 num_jogos = 100  # Total de jogos
 num_processos = 10  # Número de processos
@@ -386,23 +411,4 @@ with Manager() as manager:
     pontuacao_total = sum(resultados_compartilhados)
 
 print()
-print("Pontuação final:", pontuacao_total)'''
-
-
-def teste_max_in_line():
-    brd0={'C':(1, 1), 'c':(1, 2), 'P': (0, 1), 'b': (2, 2), 'T': (3, 0)}
-    brd1={'C':(1, 1), 'c':(1, 2), 'P': (0, 1), 'b': (2, 2), 'T': (3, 1), 't': (3, 0), 'B': (2,1)}
-    brd2={'T': (0, 0), 'C':(1, 1), 'c':(1, 2), 'P': (0, 1), 'b': (2, 2), 't': (3, 0), 'B': (2,1)}
-    brd3={'C':(1, 1), 'c':(1, 2), 'P': (0, 1), 'b': (2, 2), 'T': (3, 1), 't': (3, 0), 'b': (2,1)}
-    brd={'b': (2, 3), 'B': (3, 3), 'c': (2, 2), 'P': (0, 2), 't': (0, 3), 'C': (1, 2), 'T': (3, 2), 'p': (0, 0)}
-    est0=EstadoTicTacChess('WHITE',brd0,0,[0,0],[-1,1],'')
-    est1=EstadoTicTacChess('WHITE',brd1,0,[0,0],[-1,1],'')
-    est2=EstadoTicTacChess('BLACK',brd2,0,[0,0],[-1,1],'')
-    est3=EstadoTicTacChess('BLACK',brd3,0,[0,0],[1,1],'')
-    est=EstadoTicTacChess('WHITE',brd,0,[0,0],[1,1],'')
-    est2.display(4, 4)
-    #print("Teste eval:", attacking_piece(est2, 'WHITE'))
-    print(est2.possible_moves('C'))
-    
-# Chamada da função de teste
-teste_max_in_line() 
+print("Pontuação final:", pontuacao_total)
