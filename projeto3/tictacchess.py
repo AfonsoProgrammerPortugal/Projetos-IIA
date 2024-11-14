@@ -58,17 +58,22 @@ class EstadoTicTacChess(stateTicTacChess):
     
     def next_state(self,action):
         """Execute action from self (state). Put piece in square replacing whatever was there (maybe nothing).
-        If pawn entered board, movement is forward. If there was a capture, increment counter. Increment n_jogadas."""
+        If pawn is at end of board, redefine direction. If there was a capture, increment counter. Increment n_jogadas."""
         board = self.board.copy()
         n_capturas = self.n_capturas.copy()
         pawn_direction = self.pawn_direction.copy()
         piece, loc = action
-        # se a peça é um peão, se está no final do tabuleiro inverte a direção:
-        if piece == 'P' or piece == 'p':
-            if piece == 'P' and loc[0] == 0:
-                pawn_direction[0] = -1 * pawn_direction[0]
-            if piece == 'p' and loc[0] == self.v - 1:
-                pawn_direction[1] = -1 * pawn_direction[1]
+        # se a peça é um peão, se está no final do tabuleiro redefine a sua direção:
+        if piece == 'P':
+            if loc[0] == 0:
+                pawn_direction[0] = -1
+            elif loc[0] == self.v - 1:
+                pawn_direction[0] = 1
+        if piece == 'p':
+            if loc[0] == 0:
+                pawn_direction[1] = 1
+            elif loc[0] == self.v - 1:
+                pawn_direction[1] = -1
         # se temos nova captura, incrementa contador:
         if loc in self.board.values():
             if self.to_move == 'WHITE':

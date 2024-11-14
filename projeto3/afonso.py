@@ -350,7 +350,7 @@ def my_player2(game, state) :
 # Testes
 ##############################################################################################################
 
-jogo = TicTacChess()
+'''jogo = TicTacChess()
 # print(jogo.jogar(my_player2, jogador_random_plus_p, verbose=False))
 num_jogos = 100  # Total de jogos
 num_processos = 10  # Número de processos
@@ -386,5 +386,23 @@ with Manager() as manager:
     pontuacao_total = sum(resultados_compartilhados)
 
 print()
-print("Pontuação final:", pontuacao_total)
+print("Pontuação final:", pontuacao_total)'''
 
+
+def teste_max_in_line():
+    brd0={'C':(1, 1), 'c':(1, 2), 'P': (0, 1), 'b': (2, 2), 'T': (3, 0)}
+    brd1={'C':(1, 1), 'c':(1, 2), 'P': (0, 1), 'b': (2, 2), 'T': (3, 1), 't': (3, 0), 'B': (2,1)}
+    brd2={'T': (0, 0), 'C':(1, 1), 'c':(1, 2), 'P': (0, 1), 'b': (2, 2), 't': (3, 0), 'B': (2,1)}
+    brd3={'C':(1, 1), 'c':(1, 2), 'P': (0, 1), 'b': (2, 2), 'T': (3, 1), 't': (3, 0), 'b': (2,1)}
+    brd={'b': (2, 3), 'B': (3, 3), 'c': (2, 2), 'P': (0, 2), 't': (0, 3), 'C': (1, 2), 'T': (3, 2), 'p': (0, 0)}
+    est0=EstadoTicTacChess('WHITE',brd0,0,[0,0],[-1,1],'')
+    est1=EstadoTicTacChess('WHITE',brd1,0,[0,0],[-1,1],'')
+    est2=EstadoTicTacChess('BLACK',brd2,0,[0,0],[-1,1],'')
+    est3=EstadoTicTacChess('BLACK',brd3,0,[0,0],[1,1],'')
+    est=EstadoTicTacChess('WHITE',brd,0,[0,0],[1,1],'')
+    est2.display(4, 4)
+    #print("Teste eval:", attacking_piece(est2, 'WHITE'))
+    print(est2.possible_moves('C'))
+    
+# Chamada da função de teste
+teste_max_in_line() 
