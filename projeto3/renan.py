@@ -13,6 +13,50 @@ from multiprocessing import Process, Manager
 # n de opcoes para cada uma das peças (funções individuais para cada peça)
 # player_used_pieces() -> priorizar estados em que o jogador nao tem peao no tab
 
+def how_many_in_line(state, player):
+    clone = copy.deepcopy(state)
+    player_pieces = clone.player_pieces(player)
+    player_positions = []
+
+    for piece, pos in clone.board.items():
+        if piece in player_pieces:
+            player_positions.append(pos)
+
+    best = 0
+
+    for row in range(4):
+        local_best = 0
+        for col in range(4):
+            if (row, col) in player_positions:
+                local_best += 1
+        if local_best > best:
+            best = local_best
+
+    for col in range(4):
+        local_best = 0
+        for row in range(4):
+            if (row, col) in player_positions:
+                local_best += 1
+        if local_best > best:
+            best = local_best
+
+    local_best = 0
+    for d in range(4):
+        if (d, d) in player_positions:
+            local_best += 1
+    if local_best > best:
+        best = local_best
+
+    local_best = 0
+    for d in range(4):
+        if (d, 3-d) in player_positions:
+            local_best += 1
+    if local_best > best:
+        best = local_best
+
+    return best
+
+
 def get_other_player(player):
     return 'WHITE' if player == 'BLACK' else 'BLACK'
 
@@ -100,14 +144,15 @@ def two_can_become_three_in_row(state, player):
 
 def can_win_next_move(state, player):
     clone = copy.deepcopy(state)
+    in_line = how_many_in_line(state, player)
 
-    if check_3_in_row(state, player) == 1 and clone.n_jogadas >= 6:
+    if in_line == 3 and clone.n_jogadas >= 6:
         counter = 0
         used_pieces = clone.player_used_pieces(player)
         for piece in used_pieces:
             moves = clone.possible_moves(piece)
             for move in moves:
-                if clone.next_state(move).have_winner() == player:
+                if how_many_in_line(clone.next_state(move), player) == 4:
                     counter += 1
         return counter
     return 0
@@ -176,11 +221,13 @@ def start_with_knight_center(state, player):
 
 def start_aligning(state, player):
     clone = copy.deepcopy(state)
-    if 4 <= clone.n_jogadas <= 6:
+    in_line = how_many_in_line(state, player)
+
+    if clone.n_jogadas <= 6:
         used_pieces = clone.player_used_pieces(player)
 
-        if (len(used_pieces) == 2 and clone.n_in_row(2) == player) or \
-           (len(used_pieces) == 3 and clone.n_in_row(3) == player):
+        if (len(used_pieces) == 2 and in_line == 2) or \
+           (len(used_pieces) == 3 and in_line == 3):
             return 1
         else:
             return -1
@@ -231,6 +278,25 @@ def in_row_hierarchy(state, player):
 
     return 0
 
+def check_how_many_in_line(state, player):
+    my_result = how_many_in_line(state, player)
+    their_result = how_many_in_line(state, get_other_player(player))
+
+    if my_result == 4 and their_result < 4:
+        return infinity
+    if their_result == 4 and my_result < 4:
+        return -infinity
+    if my_result == 3 and their_result < 3:
+        return 2
+    if their_result == 3 and my_result < 3:
+        return -2
+    if my_result == 2 and their_result < 2:
+        return 1
+    if their_result == 2 and my_result < 2:
+        return -1
+    else:
+        return 0
+
 def func_tactic(estado,jogador) :
     # print(jogador, 123)
     # print(estado.to_move, 444)
@@ -259,19 +325,20 @@ my_combinations = [
     # (knight_on_board, 0),
     # (bishop_on_board, 0),
     # (rook_on_board, 0),
-    # (pawn_on_board, -1),
+    # (pawn_on_board, -1000),
     # (adversary_pawn_on_board, 3),
     # (check_3_in_row_3_pieces, 2),
-    (can_win_next_move, 10),
-    (adversary_can_win_next_move, -1),
+    (can_win_next_move, 1),
+    # (adversary_can_win_next_move, -1),
     # (can_stop_adversary_win, 1),
     # (adversary_can_stop_our_win, -1),
     # (can_win_and_adversary_cant_stop, 1),
     # (can_attack, 1),
     # (can_be_attacked, -1),
-    (func_tactic, 1),
-    # (start_with_knight_center, 1000000),
-    # (start_aligning, 0),
+    # (func_tactic, 1),
+    (check_how_many_in_line, 1),
+    # (start_with_knight_center, 1000),
+    # (start_aligning, 1),
     # (more_centered_pieces, 1),
     # (in_row_hierarchy, 1)
 ]
@@ -316,8 +383,14 @@ jogos_por_processo = num_jogos // num_processos  # Jogos que cada processo execu
 # Função que cada processo executará
 def executar_jogos(resultados_compartilhados, indice):
     vitorias = 0
-    for _ in range(jogos_por_processo):
+    for _ in range(5):
         resultado = jogo.jogar(my_player, jogador_tactic, verbose=False)
+        print(resultado, end='')
+        if resultado == 1:  # Se for uma vitória
+            vitorias += 1
+
+    for _ in range(5):
+        resultado = jogo.jogar(jogador_tactic, my_player, verbose=False) * -1
         print(resultado, end='')
         if resultado == 1:  # Se for uma vitória
             vitorias += 1
