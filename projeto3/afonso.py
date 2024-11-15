@@ -173,38 +173,56 @@ def torneio(n,jogadores):
 ##############################################################################################################
 
 # Função que joga o cavalo no centro do tabuleiro
+# devolve 1 se o jogador jogar o cavalo no centro
+# -1 se o adversário jogar o cavalo no centro
 def play_knight_center(estado,jogador):
     piece = "C" if jogador == "WHITE" else "c"
     center_positions = [(1,1),(1,2),(2,1),(2,2)]
-    positions,pieces = estado.player_used_cells(jogador)
+    positions_P1, pieces_P1 = estado.player_used_cells(jogador)
+    positions_P2, pieces_P2 = estado.player_used_cells(estado.other())
 
-    for i in range(len(positions)):
-        if positions[i] in center_positions and pieces[i] == piece:
+    for i in range(len(positions_P1)):
+        if positions_P1[i] in center_positions and pieces_P1[i] == piece:
             return 1
+
+        elif positions_P2[i] in center_positions and pieces_P2[i] == piece:
+            return -1
     
     return 0
 
 # Função que joga o bispo na diagonal oposta ao cavalo
+# devolve 1 se o jogador jogar o bispo no centro
+# -1 se o adversário jogar o bispo no centro
 def play_bishop_center(estado,jogador):
     piece = "B" if jogador == "WHITE" else "b"
     center_positions = [(1,1),(1,2),(2,1),(2,2)]
-    positions,pieces = estado.player_used_cells(jogador)
+    positions_P1, pieces_P1 = estado.player_used_cells(jogador)
+    positions_P2, pieces_P2 = estado.player_used_cells(estado.other())
 
-    for i in range(len(positions)):
-        if positions[i] in center_positions and pieces[i] == piece:
+    for i in range(len(positions_P1)):
+        if positions_P1[i] in center_positions and pieces_P1[i] == piece:
             return 1
+        
+        elif positions_P2[i] in center_positions and pieces_P2[i] == piece:
+            return -1
 
     return 0
 
 # Função que joga a torre num dos cantos do tabuleiro
+# devolve 1 se o jogador jogar a torre num dos cantos
+# -1 se o adversário jogar a torre num dos cantos
 def play_rook_corner(estado,jogador):
     piece = "T" if jogador == "WHITE" else "t"
     corner_positions = [(0,0),(0,3),(3,0),(3,3)]
-    positions,pieces = estado.player_used_cells(jogador)
+    positions_P1, pieces_P1 = estado.player_used_cells(jogador)
+    positions_P2, pieces_P2 = estado.player_used_cells(estado.other())
 
-    for i in range(len(positions)):
-        if positions[i] in corner_positions and pieces[i] == piece:
+    for i in range(len(positions_P1)):
+        if positions_P1[i] in corner_positions and pieces_P1[i] == piece:
             return 1
+        
+        elif positions_P2[i] in corner_positions and pieces_P2[i] == piece:
+            return -1
 
     return 0
 
@@ -249,7 +267,7 @@ def func_defense_priority(estado, jogador):
     clone = copy.deepcopy(estado)
 
     positions_p1, pieces_p1 = clone.player_used_cells(jogador)
-    positions_p2, pieces_p2 = clone.player_used_pieces(estado.other())
+    positions_p2, pieces_p2 = clone.player_used_cells(estado.other())
 
     if count_threats(clone, pieces_p2, positions_p1):
         return 1
@@ -305,7 +323,7 @@ def func_objective_opportunity(estado,jogador):
     else:
         return 0
 
-def func_objective_opportunity_other(estado):
+def func_objective_opportunity_other(estado,jogador):
     return -func_objective_opportunity(estado, estado.other())
 
 # Função que verifica se o jogador pode atacar
@@ -376,7 +394,6 @@ def my_player2(game, state) :
 ##############################################################################################################
 
 jogo = TicTacChess()
-# print(jogo.jogar(my_player2, jogador_random_plus_p, verbose=False))
 num_jogos = 100  # Total de jogos
 num_processos = 10  # Número de processos
 jogos_por_processo = num_jogos // num_processos  # Jogos que cada processo executará
