@@ -307,21 +307,18 @@ def func_objective_opportunity(estado,jogador):
     # Copia o estado para não o alterar
     clone=copy.deepcopy(estado)
 
-    # Verifica se o jogador tem 2 na mesma linha
-    # e se tem uma peça livre que possa ser jogada
-    if clone.n_in_row(2) == jogador and \
-        len(clone.player_used_pieces(jogador)) > 2 and \
-        winning_move(estado,jogador) == 1:
-        return 1
     # Verifica se o jogador tem 3 na mesma linha
     # e se tem uma peça livre que possa ser jogada
-    elif clone.n_in_row(3) == jogador and \
-        len(clone.player_used_pieces(jogador)) > 3 and \
-        winning_move(estado,jogador) == 1:
+    if clone.n_in_row(3) == jogador:
         return infinity
-    # Caso não tenha 2 ou 3 na mesma linha
+    
+    # Verifica se o jogador tem 2 na mesma linha
+    # e se tem uma peça livre que possa ser jogada
+    elif clone.n_in_row(2) == jogador:
+        return 1
+
     else:
-        return 0
+        return 0    
 
 def func_objective_opportunity_other(estado,jogador):
     return -func_objective_opportunity(estado, estado.other())
@@ -380,7 +377,7 @@ def func_afonso(estado,jogador):
             func_objective_opportunity_other,
             func_tactic
         ]
-        my_weights = [100,25,50,50,50]
+        my_weights = [100, 50, 100000, 100000, 1]
 
         return func_combina_com_pesos(clone,jogador,my_weights,my_functions)
 
@@ -394,38 +391,21 @@ def my_player2(game, state) :
 ##############################################################################################################
 
 jogo = TicTacChess()
-num_jogos = 100  # Total de jogos
-num_processos = 10  # Número de processos
-jogos_por_processo = num_jogos // num_processos  # Jogos que cada processo executará
 
-# Função que cada processo executará
-def executar_jogos(resultados_compartilhados, indice):
-    vitorias = 0
-    for _ in range(jogos_por_processo):
-        resultado = jogo.jogar(my_player2, jogador_random_plus_p, verbose=False)
-        print(resultado, end='')
-        if resultado == 1:  # Se for uma vitória
-            vitorias += 1
-    # Armazena o total de vitórias deste processo na lista compartilhada
-    resultados_compartilhados[indice] = vitorias
+# Função que joga n jogo entre o jogador criado por mim e um jogador aleatório
+def play_n_games(n):
+    count = 0
 
-# Usando Manager para criar uma lista compartilhada
-with Manager() as manager:
-    resultados_compartilhados = manager.list([0] * num_processos)  # Lista com um espaço para cada processo
+    copy = n
 
-    # Criando e iniciando os processos
-    processos = []
-    for i in range(num_processos):
-        processo = Process(target=executar_jogos, args=(resultados_compartilhados, i))
-        processos.append(processo)
-        processo.start()
+    while copy > 0:
+        vencedor = jogo.jogar(my_player2, jogador_tactic_p, verbose=False)
+        if vencedor == 1:
+            count += 1
+        
+        print(vencedor)
+        copy -= 1
+    
+    print("Vitórias:", count)
 
-    # Aguardando que todos os processos terminem
-    for processo in processos:
-        processo.join()
-
-    # Calculando a soma total das vitórias
-    pontuacao_total = sum(resultados_compartilhados)
-
-print()
-print("Pontuação final:", pontuacao_total)
+play_n_games(25)
