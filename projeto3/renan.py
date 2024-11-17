@@ -128,33 +128,37 @@ def check_3_in_row_no_pawn(state, player): return 1 if (check_3_in_row(state, pl
 
 def check_3_in_row_3_pieces(state, player):
     clone = copy.deepcopy(state)
-    return 1 if (check_3_in_row(state, player) == 1 and len(clone.player_used_pieces(player)) == 3) else 0
+    return 1 if (how_many_in_line(state, player) == 3 and len(clone.player_used_pieces(player)) == 3) else 0
 
 def two_can_become_three_in_row(state, player):
     clone = copy.deepcopy(state)
     in_line = how_many_in_line(state, player)
 
+    counter = 0
     if clone.to_move == player and in_line == 2 and clone.n_jogadas >= 6:
         used_pieces = clone.player_used_pieces(player)
         for piece in used_pieces:
             moves = clone.possible_moves(piece)
             for move in moves:
                 if how_many_in_line(clone.next_state(move), player) == 3:
-                    return 1
-    return 0
+                    counter += 1
+    return counter
 
 def can_win_next_move(state, player):
     clone = copy.deepcopy(state)
-    in_line = how_many_in_line(state, player)
+    to_move = clone.to_move
+    in_line = how_many_in_line(clone, to_move)
 
-    if player == clone.to_move and in_line == 3 and clone.n_jogadas >= 6:
-        used_pieces = clone.player_used_pieces(player)
+    # print(player == clone.to_move)
+    counter = 0
+    if in_line == 3 and clone.n_jogadas >= 6:
+        used_pieces = clone.player_used_pieces(to_move)
         for piece in used_pieces:
             moves = clone.possible_moves(piece)
             for move in moves:
-                if how_many_in_line(clone.next_state(move), player) == 4:
-                    return infinity
-    return 0
+                if how_many_in_line(clone.next_state(move), to_move) == 4:
+                    counter += 1
+    return counter if player == to_move else -counter
 
 def adversary_can_win_next_move(state, player):
     return can_win_next_move(state, get_other_player(player))
@@ -163,14 +167,15 @@ def can_win_next_next_move(state, player):
     clone = copy.deepcopy(state)
     in_line = how_many_in_line(state, player)
 
+    counter = 0
     if player == get_other_player(clone.to_move) and in_line == 3 and clone.n_jogadas >= 6:
         used_pieces = clone.player_used_pieces(player)
         for piece in used_pieces:
             moves = clone.possible_moves(piece)
             for move in moves:
                 if how_many_in_line(clone.next_state(move), player) == 4:
-                    return infinity
-    return 0
+                    counter += 1
+    return counter
 
 def adversary_can_win_next_next_move(state, player):
     return can_win_next_next_move(state, get_other_player(player))
@@ -178,15 +183,16 @@ def adversary_can_win_next_next_move(state, player):
 def can_stop_adversary_win(state, player):
     clone = copy.deepcopy(state)
 
-    if (player == clone.to_move) and (adversary_can_win_next_next_move(state, player) > 0) and ((clone.n_capturas[0] if player == 'WHITE' else clone.n_capturas[1]) < 3) and (clone.n_jogadas >= 6):
+    counter = 0
+    if (player == clone.to_move) and (adversary_can_win_next_next_move(state, player) > 0) and (clone.n_jogadas >= 6): #and ((clone.n_capturas[0] if player == 'WHITE' else clone.n_capturas[1]) < 3)
         used_pieces = clone.player_used_pieces(player)
         for piece in used_pieces:
             moves = clone.possible_moves(piece)
             for move in moves:
                 next_state = clone.next_state(move)
                 if how_many_in_line(next_state, get_other_player(player)) == 2 or adversary_can_win_next_move(next_state, player) == 0:
-                    return 1.5
-    return 0
+                    counter += 1
+    return counter
 
 def adversary_can_stop_our_win(state, player):
     return can_stop_adversary_win(state, get_other_player(player))
@@ -204,7 +210,7 @@ def can_attack(state, player):
         my_counter = 0
         their_counter = 0
         to_move = clone.to_move
-        multiplier = 5
+        multiplier = 2
 
         used_pieces = clone.player_used_pieces(player)
         their_positions, _ = clone.player_used_cells(get_other_player(player))
@@ -250,10 +256,10 @@ def start_with_knight_center(state, player):
         return 0
 
 def start_aligning(state, player):
-    clone = copy.deepcopy(state)
-    in_line = how_many_in_line(state, player)
+    if state.n_jogadas <= 6:
+        clone = copy.deepcopy(state)
+        in_line = how_many_in_line(clone, player)
 
-    if clone.n_jogadas <= 6:
         used_pieces = clone.player_used_pieces(player)
 
         if (len(used_pieces) == 2 and in_line == 2) or \
@@ -320,9 +326,9 @@ def check_how_many_in_line(state, player):
     if their_result == 4 and my_result < 4:
         return -infinity
     if my_result == 3 and their_result < 3:
-        return 2 if to_move == player else 1
+        return 10 if to_move == player else 1
     if their_result == 3 and my_result < 3:
-        return -1 if to_move == player else -2
+        return -1 if to_move == player else -10
     # if my_result == 2 and their_result < 2:
     #     return 1 if to_move == player else 0.5
     # if their_result == 2 and my_result < 2:
@@ -358,20 +364,20 @@ my_combinations = [
     # (knight_on_board, 0),
     # (bishop_on_board, 0),
     # (rook_on_board, 0),
-    # (pawn_on_board, -1000),
+    # (pawn_on_board, 3),
     # (adversary_pawn_on_board, 3),
     # (check_3_in_row_3_pieces, 2),
-    # (can_win_next_move, 1),
-    # (adversary_can_win_next_move, -1),
-    # (can_stop_adversary_win, 1),
-    # (adversary_can_stop_our_win, -1),
+    # (can_win_next_move, 10),
+    # (adversary_can_win_next_move, -5),
+    # (can_stop_adversary_win, 5),
+    # (adversary_can_stop_our_win, -5),
     # (can_win_and_adversary_cant_stop, 1),
     # (can_attack, 1),
     # (can_be_attacked, -1),
     # (func_tactic, 1),
     (check_how_many_in_line, 1),
-    # (two_can_become_three_in_row, 1)
-    # (start_with_knight_center, 10),
+    # (two_can_become_three_in_row, 10)
+    # (start_with_knight_center, 1),
     # (start_aligning, 1),
     # (more_centered_pieces, 1),
     # (in_row_hierarchy, 1)
