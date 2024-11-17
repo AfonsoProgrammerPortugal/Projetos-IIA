@@ -326,52 +326,74 @@ def pawn_on_board_88(state, player):   return check_piece_on_board_88(state, pla
 def adversary_pawn_on_board_88(state, player):
     return pawn_on_board_88(state, 'WHITE' if player == 'BLACK' else 'BLACK')
 
-def check_3_in_row_no_pawn_88(state, player): return 1 if (check_3_in_row_88(state, player) == 1 and pawn_on_board_88(state, player) == -1) else 0
+def check_3_in_row_no_pawn_88(state, player): return 1 if (check_3_in_row_88(state, player) == 1 and \
+                                                           pawn_on_board_88(state, player) == -1) else 0
 
 def check_3_in_row_3_pieces_88(state, player):
     clone = copy.deepcopy(state)
-    return 1 if (check_3_in_row_88(state, player) == 1 and len(clone.player_used_pieces(player)) == 3) else 0
+    return 1 if (check_3_in_row_88(state, player) == 1 and \
+                len(clone.player_used_pieces(player)) == 3) else 0
 
 def two_can_become_three_in_row_88(state, player):
     clone = copy.deepcopy(state)
+    in_line = how_many_in_line_88(state, player)
 
-    if check_2_in_row_88(state, player) == 1 and clone.n_jogadas >= 6:
+    if clone.to_move == player and in_line == 2 and clone.n_jogadas >= 6:
         used_pieces = clone.player_used_pieces(player)
         for piece in used_pieces:
             moves = clone.possible_moves(piece)
             for move in moves:
-                if clone.next_state(move).n_in_row(3) == player:
-                    return True
-    return False
+                if how_many_in_line_88(clone.next_state(move), player) == 3:
+                    return 1
+    return 0
 
 def can_win_next_move_88(state, player):
     clone = copy.deepcopy(state)
     in_line = how_many_in_line_88(state, player)
 
-    if in_line == 3 and clone.n_jogadas >= 6:
-        counter = 0
+    if player == clone.to_move and in_line == 3 and clone.n_jogadas >= 6:
         used_pieces = clone.player_used_pieces(player)
         for piece in used_pieces:
             moves = clone.possible_moves(piece)
             for move in moves:
                 if how_many_in_line_88(clone.next_state(move), player) == 4:
-                    counter += 1
-        return counter
+                    return infinity
     return 0
 
 def adversary_can_win_next_move_88(state, player):
     return can_win_next_move_88(state, get_other_player_88(player))
 
-def can_stop_adversary_win_88(state, player):
+def can_win_next_next_move_88(state, player):
     clone = copy.deepcopy(state)
+    in_line = how_many_in_line_88(state, player)
 
-    if (adversary_can_win_next_move_88(state, player) > 0) and ((clone.n_capturas[0] if player == 'WHITE' else clone.n_capturas[1]) < 3) and (clone.n_jogadas >= 6):
+    if player == get_other_player_88(clone.to_move) and in_line == 3 and clone.n_jogadas >= 6:
         used_pieces = clone.player_used_pieces(player)
         for piece in used_pieces:
             moves = clone.possible_moves(piece)
             for move in moves:
-                if clone.next_state(move).n_in_row(2) == get_other_player_88(player):
-                    return 1
+                if how_many_in_line_88(clone.next_state(move), player) == 4:
+                    return infinity
+    return 0
+
+def adversary_can_win_next_next_move_88(state, player):
+    return can_win_next_next_move_88(state, get_other_player_88(player))
+
+def can_stop_adversary_win_88(state, player):
+    clone = copy.deepcopy(state)
+
+    if (player == clone.to_move) and \
+        (adversary_can_win_next_next_move_88(state, player) > 0) and \
+        ((clone.n_capturas[0] if player == 'WHITE' else clone.n_capturas[1]) < 3) and \
+        (clone.n_jogadas >= 6):
+        used_pieces = clone.player_used_pieces(player)
+        for piece in used_pieces:
+            moves = clone.possible_moves(piece)
+            for move in moves:
+                next_state = clone.next_state(move)
+                if how_many_in_line_88(next_state, get_other_player_88(player)) == 2 or \
+                    adversary_can_win_next_move_88(next_state, player) == 0:
+                    return 1.5
     return 0
 
 def adversary_can_stop_our_win_88(state, player):
@@ -385,16 +407,31 @@ def adversary_can_win_and_we_cant_stop_88(state, player):
 
 def can_attack_88(state, player):
     clone = copy.deepcopy(state)
-    if ((clone.n_capturas[0] if player == 'WHITE' else clone.n_capturas[1]) < 3) and (clone.n_jogadas >= 6):
+
+    if clone.n_jogadas >= 6:
+        my_counter = 0
+        their_counter = 0
+        to_move = clone.to_move
+        multiplier = 5
+
         used_pieces = clone.player_used_pieces(player)
-        adversary_positions, _ = clone.player_used_cells(get_other_player_88(player))
-        counter = 0
+        their_positions, _ = clone.player_used_cells(get_other_player_88(player))
         for piece in used_pieces:
             moves = list(map(lambda x: x[1], clone.possible_moves(piece)))
             for move in moves:
-                if move in adversary_positions:
-                    counter += 1
-        return counter
+                if move in their_positions:
+                    my_counter += multiplier if player == to_move else 1
+
+        used_pieces = clone.player_used_pieces(get_other_player_88(player))
+        my_positions, _ = clone.player_used_cells(player)
+
+        for piece in used_pieces:
+            moves = list(map(lambda x: x[1], clone.possible_moves(piece)))
+            for move in moves:
+                if move in my_positions:
+                    their_counter += multiplier if player == to_move else 1
+
+        return my_counter - their_counter
     else:
         return 0
 
@@ -431,6 +468,8 @@ def start_aligning_88(state, player):
         if (len(used_pieces) == 2 and in_line == 2) or \
            (len(used_pieces) == 3 and in_line == 3):
             return 1
+        elif len(used_pieces) == 1:
+            return 0
         else:
             return -1
     else:
@@ -483,19 +522,20 @@ def in_row_hierarchy_88(state, player):
 def check_how_many_in_line_88(state, player):
     my_result = how_many_in_line_88(state, player)
     their_result = how_many_in_line_88(state, get_other_player_88(player))
+    to_move = state.to_move
 
     if my_result == 4 and their_result < 4:
         return infinity
     if their_result == 4 and my_result < 4:
         return -infinity
     if my_result == 3 and their_result < 3:
-        return 2
+        return 2 if to_move == player else 1
     if their_result == 3 and my_result < 3:
-        return -2
-    if my_result == 2 and their_result < 2:
-        return 1
-    if their_result == 2 and my_result < 2:
-        return -1
+        return -1 if to_move == player else -2
+    # if my_result == 2 and their_result < 2:
+    #     return 1 if to_move == player else 0.5
+    # if their_result == 2 and my_result < 2:
+    #     return -0.5 if to_move == player else -1
     else:
         return 0
     
@@ -529,6 +569,7 @@ my_combinations = [
     # (func_tactic, 1),
     (check_how_many_in_line_88, 1),
     # (start_with_knight_center_88, 1000),
+    # (two_can_become_three_in_row_88, 1),
     # (start_aligning_88, 1),
     # (more_centered_pieces_88, 1),
     # (in_row_hierarchy_88, 1)
