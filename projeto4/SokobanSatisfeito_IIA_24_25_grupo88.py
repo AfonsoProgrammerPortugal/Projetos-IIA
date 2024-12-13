@@ -33,20 +33,20 @@ def csp_possivel_solucao(caixas, goals_alcancaveis):
 # ------------------------------------------------------------------------------------------------------------------------------
 
 def vizinhos_mesma_linha(celula1, celula2, navegaveis):
-    linha1, coluna1 = celula1
-    linha2, coluna2 = celula2
+    l1, c1 = celula1
+    l2, c2 = celula2
 
-    return linha1 == linha2 and \
-           ((coluna1 == coluna2 - 1 and (linha1, coluna1 - 1) in navegaveis) or
-            (coluna1 == coluna2 + 1 and (linha1, coluna1 + 1) in navegaveis))
+    return l1 == l2 and \
+           ((c1 == c2 - 1 and ((l1, c1 - 1) in navegaveis or (l1, c2 + 1) in navegaveis)) or
+            (c1 == c2 + 1 and ((l1, c1 + 1) in navegaveis or (l1, c2 - 1) in navegaveis)))
 
 def vizinhos_mesma_coluna(celula1, celula2, navegaveis):
-    linha1, coluna1 = celula1
-    linha2, coluna2 = celula2
+    l1, c1 = celula1
+    l2, c2 = celula2
 
-    return coluna1 == coluna2 and \
-           ((linha1 == linha2 - 1 and (linha1 - 1, coluna1) in navegaveis) or
-            (linha1 == linha2 + 1 and (linha1 + 1, coluna1) in navegaveis))
+    return c1 == c2 and \
+           ((l1 == l2 - 1 and ((l1 - 1, c1) in navegaveis or (l2 + 1, c1) in navegaveis)) or
+            (l1 == l2 + 1 and ((l1 + 1, c1) in navegaveis or (l2 - 1, c1) in navegaveis)))
 
 def sao_vizinhos(celula1, celula2, navegaveis):
     return vizinhos_mesma_linha(celula1, celula2, navegaveis) or \
@@ -61,10 +61,10 @@ def csp_find_alcancaveis_1goal(s, goal):
 
     dominios = {}
     for celula in variaveis:
-        if s.its_a_trap(celula):
-            dominios[celula] = [0]
-        elif celula == goal:
+        if celula == goal:
             dominios[celula] = [1]
+        elif s.its_a_trap(celula):
+            dominios[celula] = [0]
         else: 
             dominios[celula] = [0, 1]
 
@@ -78,11 +78,10 @@ def csp_find_alcancaveis_1goal(s, goal):
                     vizinhos[celula] = [outra_celula]
     
     def restricoes(X, a, Y, b):
-        if X in vizinhos and Y in vizinhos[X]:
-            if b == 1: 
-                return True
-        if Y in vizinhos and X in vizinhos[Y]:
-            return a == 1
+        if a == 1 and not s.its_a_trap(Y) and b == 0:
+            return False
+        if b == 1 and not s.its_a_trap(X) and a == 0:
+            return False
         return True
 
     return CSP(variaveis, dominios, vizinhos, restricoes)  
