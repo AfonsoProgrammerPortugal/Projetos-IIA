@@ -52,10 +52,6 @@ def sao_vizinhos(celula1, celula2, navegaveis):
     return vizinhos_mesma_linha(celula1, celula2, navegaveis) or \
            vizinhos_mesma_coluna(celula1, celula2, navegaveis)
 
-def diferentes(x,y):
-    """x diferente de y"""
-    return x != y
-
 def csp_find_alcancaveis_1goal(s, goal):
     variaveis = list(copy.deepcopy(s.navegaveis))
 
@@ -93,20 +89,6 @@ def csp_find_alcancaveis_1goal(s, goal):
         else:
             return X != Y
 
-        # num_viz_X = len(vizinhos[X])
-        # num_viz_Y = len(vizinhos[Y])
-        # if num_viz_X > 3 and num_viz_Y > 3:
-        #     return a == 1 and b == 1
-        # if num_viz_X < 3 and b == 0:
-        #     return a == 0
-        # if num_viz_Y < 3 and a == 0:
-        #     return b == 0
-        # if b == 1 and s.its_a_trap(Y):
-        #     return a == 1
-        # if a == 1 and s.its_a_trap(X):
-        #     return b == 1
-        # return True
-
     return CSP(variaveis, dominios, vizinhos, restricoes)  
 
 #----------------------------------------------------------------------------------------------------------
@@ -135,45 +117,3 @@ def find_alcancaveis_all_goals(s):
                 result_alcancaveis[celula].append(goal)
     
     return result_alcancaveis
-
-#-----------------------------------------------------------------------------------------------------------
-
-# linha1= "#####\n"
-# linha2= "#...#\n"
-# linha3= "#.@.#\n"
-# linha4= "#.$.#\n"
-# linha5= "#.o.#\n"
-# linha6= "#####\n"
-# mundoS=linha1+linha2+linha3+linha4+linha5+linha6
-
-# try:
-#     s = Sokoban(situacaoInicial=mundoS)
-#     result = find_alcancaveis_1goal(s,(4,2))
-#     result = dict(sorted(result.items()))
-#     print(result)
-# except Exception as e:
-#     print(repr(e))
-
-# {(1, 1): 0, (1, 2): 0, (1, 3): 0, (2, 1): 0, (2, 2): 1, (2, 3): 0, (3, 1): 0, (3, 2): 1, (3, 3): 0, (4, 1): 0, (4, 2): 1, (4, 3): 0}
-# {(1, 1): 0, (1, 2): 0, (1, 3): 0, (2, 1): 0, (2, 2): 1, (2, 3): 0, (3, 1): 0, (3, 2): 1, (3, 3): 0, (4, 1): 0, (4, 2): 1, (4, 3): 0}
-
-########
-
-# linha1= "#####\n"
-# linha2= "#...#\n"
-# linha3= "#o@.#\n"
-# linha4= "#.$$#\n"
-# linha5= "#.o.#\n"
-# linha6= "#####\n"
-# mundoS=linha1+linha2+linha3+linha4+linha5+linha6
-
-# try:
-#     s = Sokoban(situacaoInicial=mundoS)
-#     result = find_alcancaveis_1goal(s,(2,1))
-#     result = dict(sorted(result.items()))
-#     print(result)
-# except Exception as e:
-#     print(repr(e))
-
-# {(1, 1): 0, (1, 2): 0, (1, 3): 0, (2, 1): 1, (2, 2): 1, (2, 3): 0, (3, 1): 1, (3, 2): 1, (3, 3): 0, (4, 1): 0, (4, 2): 0, (4, 3): 0}
-# {(1, 1): 0, (1, 2): 0, (1, 3): 0, (2, 1): 1, (2, 2): 1, (2, 3): 0, (3, 1): 0, (3, 2): 1, (3, 3): 0, (4, 1): 0, (4, 2): 0, (4, 3): 0}
