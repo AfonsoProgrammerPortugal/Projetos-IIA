@@ -5,7 +5,7 @@ from search import *
 import copy
 
 def csp_possivel_solucao(caixas, goals_alcancaveis):
-    variaveis = list(copy.deepcopy(caixas))
+    variaveis = caixas
 
     dominios = {}
     for celula, goals in goals_alcancaveis.items():
@@ -53,7 +53,7 @@ def sao_vizinhos(celula1, celula2, navegaveis):
            vizinhos_mesma_coluna(celula1, celula2, navegaveis)
 
 def csp_find_alcancaveis_1goal(s, goal):
-    variaveis = list(copy.deepcopy(s.navegaveis))
+    variaveis = s.navegaveis
 
     dominios = {}
     for celula in variaveis:
