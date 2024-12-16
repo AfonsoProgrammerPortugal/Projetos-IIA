@@ -1,11 +1,15 @@
+# Grupo: 88
+# Membros:
+# Afonso Santos - 59808
+# Renan Silva - 59802
+
 from csp_v3 import *
 from searchPlus import *
 from sokoban_aval4 import *
 from search import *
-import copy
 
 def csp_possivel_solucao(caixas, goals_alcancaveis):
-    variaveis = caixas
+    variaveis = list(caixas)
 
     dominios = {}
     for celula, goals in goals_alcancaveis.items():
@@ -53,7 +57,7 @@ def sao_vizinhos(celula1, celula2, navegaveis):
            vizinhos_mesma_coluna(celula1, celula2, navegaveis)
 
 def csp_find_alcancaveis_1goal(s, goal):
-    variaveis = s.navegaveis
+    variaveis = list(s.navegaveis)
 
     dominios = {}
     for celula in variaveis:
